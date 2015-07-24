@@ -308,14 +308,30 @@ public class Int64Test
 		Assert.IsTrue(typeof(OverflowException) == e.GetType(), "#20");
 	}
 
+		try {
+			Int64.Parse ("５", NumberStyles.Any, CultureInfo.InvariantCulture);
+			Assert.Fail ("C#42");
+		} catch (FormatException) {
+		}
+
 	// Pass a DateTimeFormatInfo, it is unable to format
 	// numbers, but we should not crash
 	
 	Int64.Parse ("123", new DateTimeFormatInfo ());
 	
 	Assert.AreEqual (734561, Int64.Parse ("734561\0"), "#21");
-	Assert.AreEqual (734561, Int64.Parse ("734561\0\0\0    \0"), "#22");
-	Assert.AreEqual (734561, Int64.Parse ("734561\0\0\0    "), "#23");
+	try {
+		Int64.Parse ("734561\0\0\0    \0");
+		Assert.Fail ("#22");
+	} catch (FormatException) {		
+	}
+
+	try {
+		Int64.Parse ("734561\0\0\0    ");
+		Assert.Fail ("#23");
+	} catch (FormatException) {
+	}
+
 	Assert.AreEqual (734561, Int64.Parse ("734561\0\0\0"), "#24");
 
 	Assert.AreEqual (0, Int64.Parse ("0+", NumberStyles.Any), "#30");
@@ -390,6 +406,66 @@ public class Int64Test
 		} catch (OverflowException) {
 		}
 	}
+
+	[Test]
+	public void TestTryParse()
+	{
+		long result;
+
+		Assert.AreEqual (true, long.TryParse (MyString1, out result));
+		Assert.AreEqual (MyInt64_1, result);
+		Assert.AreEqual (true, long.TryParse (MyString2, out result));
+		Assert.AreEqual (MyInt64_2, result);
+		Assert.AreEqual (true, long.TryParse (MyString3, out result));
+		Assert.AreEqual (MyInt64_3, result);
+
+		Assert.AreEqual (true, long.TryParse ("1", out result));
+		Assert.AreEqual (1, result);
+		Assert.AreEqual (true, long.TryParse (" 1", out result));
+		Assert.AreEqual (1, result);
+		Assert.AreEqual (true, long.TryParse ("     1", out result));
+		Assert.AreEqual (1, result);
+		Assert.AreEqual (true, long.TryParse ("1    ", out result));
+		Assert.AreEqual (1, result);
+		Assert.AreEqual (true, long.TryParse ("+1", out result));
+		Assert.AreEqual (1, result);
+		Assert.AreEqual (true, long.TryParse ("-1", out result));
+		Assert.AreEqual (-1, result);
+		Assert.AreEqual (true, long.TryParse ("  -1", out result));
+		Assert.AreEqual (-1, result);
+		Assert.AreEqual (true, long.TryParse ("  -1  ", out result));
+		Assert.AreEqual (-1, result);
+		Assert.AreEqual (true, long.TryParse ("  -1  ", out result));
+		Assert.AreEqual (-1, result);
+
+		result = 1;
+		Assert.AreEqual (false, long.TryParse (null, out result));
+		Assert.AreEqual (0, result);
+
+		Assert.AreEqual (false, long.TryParse ("not-a-number", out result));
+
+		double OverInt = (double)long.MaxValue + 1;
+		Assert.AreEqual (false, long.TryParse (OverInt.ToString (), out result));
+		Assert.AreEqual (false, long.TryParse (OverInt.ToString (), NumberStyles.None, CultureInfo.InvariantCulture, out result));
+
+		Assert.AreEqual (false, long.TryParse ("$42", NumberStyles.Integer, null, out result));
+		Assert.AreEqual (false, long.TryParse ("%42", NumberStyles.Integer, Nfi, out result));
+		Assert.AreEqual (false, long.TryParse ("$42", NumberStyles.Integer, Nfi, out result));
+		Assert.AreEqual (false, long.TryParse (" - 1 ", out result));
+		Assert.AreEqual (false, long.TryParse (" - ", out result));
+		Assert.AreEqual (true, long.TryParse ("100000000", NumberStyles.HexNumber, Nfi, out result));
+		Assert.AreEqual (true, long.TryParse ("10000000000", out result));
+		Assert.AreEqual (true, long.TryParse ("-10000000000", out result));
+		Assert.AreEqual (true, long.TryParse ("7fffffff", NumberStyles.HexNumber, Nfi, out result));
+		Assert.AreEqual (int.MaxValue, result);
+		Assert.AreEqual (true, long.TryParse ("80000000", NumberStyles.HexNumber, Nfi, out result));
+		Assert.AreEqual (2147483648, result);
+		Assert.AreEqual (true, long.TryParse ("ffffffff", NumberStyles.HexNumber, Nfi, out result));
+		Assert.AreEqual (uint.MaxValue, result);
+		Assert.AreEqual (true, long.TryParse ("100000000", NumberStyles.HexNumber, Nfi, out result));
+		Assert.IsFalse (long.TryParse ("-", NumberStyles.AllowLeadingSign, Nfi, out result));
+		Assert.IsFalse (long.TryParse (Nfi.CurrencySymbol + "-", NumberStyles.AllowLeadingSign | NumberStyles.AllowCurrencySymbol, Nfi, out result));
+	}	
 
 	[Test]
     public void TestToString() 

@@ -5,8 +5,12 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-class Tests {
-
+#if MOBILE
+class GenericsTests
+#else
+class Tests
+#endif
+{
 	struct TestStruct {
 		public int i;
 		public int j;
@@ -17,6 +21,7 @@ class Tests {
 		}
 	}
 
+#if !MOBILE
 	class Enumerator <T> : MyIEnumerator <T> {
 		T MyIEnumerator<T>.Current {
 			get {
@@ -34,11 +39,14 @@ class Tests {
 			return true;
 		}
 	}
+#endif
 
+#if !MOBILE
 	static int Main (string[] args)
 	{
 		return TestDriver.RunTests (typeof (Tests), args);
 	}
+#endif
 
 	public static int test_1_nullable_unbox ()
 	{
@@ -183,7 +191,11 @@ class Tests {
 	public static int test_0_constrained_vtype_box () {
 		GenericClass<TestStruct> t = new GenericClass<TestStruct> ();
 
+#if MOBILE
+		return t.toString (new TestStruct ()) == "GenericsTests+TestStruct" ? 0 : 1;
+#else
 		return t.toString (new TestStruct ()) == "Tests+TestStruct" ? 0 : 1;
+#endif
 	}
 
 	public static int test_0_constrained_vtype () {
@@ -310,6 +322,16 @@ class Tests {
 		public GenericClass<int> class_field;
 	}
 
+	public class MRO<T> : MarshalByRefObject {
+		public T gen_field;
+
+		public T stfld_ldfld (T t) {
+			var m = this;
+			m.gen_field = t;
+			return m.gen_field;
+		}
+	}
+
 	public static int test_0_ldfld_stfld_mro () {
 		MRO m = new MRO ();
 		GenericStruct<int> s = new GenericStruct<int> (5);
@@ -331,6 +353,11 @@ class Tests {
 		m.class_field = new GenericClass<int> (5);
 		if (m.class_field.t != 5)
 			return 4;
+
+		// gshared
+		var m2 = new MRO<string> ();
+		if (m2.stfld_ldfld ("A") != "A")
+			return 5;
 
 		return 0;
 	}
@@ -374,6 +401,7 @@ class Tests {
 		return 0;
 	}
 
+#if !MOBILE
 	public static int test_0_variance_reflection () {
 		// covariance on IEnumerator
 		if (!typeof (MyIEnumerator<object>).IsAssignableFrom (typeof (MyIEnumerator<string>)))
@@ -396,9 +424,10 @@ class Tests {
 			return 6;
 		return 0;
 	}
+#endif
 
 	public static int test_0_ldvirtftn_generic_method () {
-		new Tests ().ldvirtftn<string> ();		
+		new GenericsTests ().ldvirtftn<string> ();
 
 		return the_type == typeof (string) ? 0 : 1;
 	}
@@ -529,8 +558,8 @@ class Tests {
 
 	/* Test that treating arrays as generic collections works with full-aot */
 	public static int test_0_fullaot_array_wrappers () {
-		Tests[] arr = new Tests [10];
-		enumerate<Tests> (arr);
+		GenericsTests[] arr = new GenericsTests [10];
+		enumerate<GenericsTests> (arr);
 		return 0;
 	}
 
@@ -663,9 +692,9 @@ class Tests {
 	}
 
 	public static int test_0_full_aot_nullable_unbox_from_gshared_code () {
-		if (!new Tests ().IsNull2<FooStruct> (null))
+		if (!new GenericsTests ().IsNull2<FooStruct> (null))
 			return 1;
-		if (new Tests ().IsNull2<FooStruct> (new FooStruct ()))
+		if (new GenericsTests ().IsNull2<FooStruct> (new FooStruct ()))
 			return 2;
 		return 0;
 	}
@@ -673,15 +702,16 @@ class Tests {
 	public static int test_0_partial_sharing () {
 		if (PartialShared1 (new List<string> (), 1) != typeof (string))
 			return 1;
-		if (PartialShared1 (new List<Tests> (), 1) != typeof (Tests))
+		if (PartialShared1 (new List<GenericsTests> (), 1) != typeof (GenericsTests))
 			return 2;
 		if (PartialShared2 (new List<string> (), 1) != typeof (int))
 			return 3;
-		if (PartialShared2 (new List<Tests> (), 1) != typeof (int))
+		if (PartialShared2 (new List<GenericsTests> (), 1) != typeof (int))
 			return 4;
 		return 0;
 	}
 
+	[Category ("GSHAREDVT")]
 	public static int test_6_partial_sharing_linq () {
 		var messages = new List<Message> ();
 
@@ -877,6 +907,21 @@ class Tests {
 		return result;
 	}
 
+	class SyncClass<T> {
+		[MethodImpl(MethodImplOptions.Synchronized)]
+		public Type getInstance() {
+			return typeof (T);
+		}
+	}
+
+	[Category ("GSHAREDVT")]
+	static int test_0_synchronized_gshared () {
+		var c = new SyncClass<string> ();
+		if (c.getInstance () != typeof (string))
+			return 1;
+		return 0;
+	}
+
 	class Response {
 	}
 
@@ -905,6 +950,7 @@ class Tests {
 	}
 
 	// #2155
+	[Category ("GSHAREDVT")]
 	public static int test_0_fullaot_sflda_cctor () {
 		List<Doc> documents = new List<Doc>();
 		documents.Add(new Doc { Name = "Doc1", Type = DocType.One } );
@@ -1036,4 +1082,159 @@ class Tests {
 		return 0;
 	}
 #endif
+
+	public static int test_0_delegate_callvirt_fullaot () {
+		Func<string> f = delegate () { return "A"; };
+        var f2 = (Func<Func<string>, string>)Delegate.CreateDelegate (typeof
+(Func<Func<string>, string>), null, f.GetType ().GetMethod ("Invoke"));
+
+        var s = f2 (f);
+		return s == "A" ? 0 : 1;
+	}
+
+    public interface ICovariant<out R>
+    {
+    }
+
+    // Deleting the `out` modifier from this line stop the problem
+    public interface IExtCovariant<out R> : ICovariant<R>
+    {
+    }
+
+    public class Sample<R> : ICovariant<R>
+    {
+    }
+
+    public interface IMyInterface
+    {
+    }
+
+	public static int test_0_variant_cast_cache () {
+		object covariant = new Sample<IMyInterface>();
+
+		var foo = (ICovariant<IMyInterface>)(covariant);
+
+		try {
+			var extCovariant = (IExtCovariant<IMyInterface>)covariant;
+			return 1;
+		} catch {
+			return 0;
+		}
+	}
+
+	struct FooStruct2 {
+		public int a1, a2, a3;
+	}
+
+	class MyClass<T> where T: struct {
+		[MethodImplAttribute (MethodImplOptions.NoInlining)]
+		public MyClass(int a1, int a2, int a3, int a4, int a5, int a6, Nullable<T> a) {
+		}
+
+		[MethodImplAttribute (MethodImplOptions.NoInlining)]
+		public static MyClass<T> foo () {
+			Nullable<T> a = new Nullable<T> ();
+			return new MyClass<T> (0, 0, 0, 0, 0, 0, a);
+		}
+	}
+
+	public static int test_0_newobj_generic_context () {
+		MyClass<FooStruct2>.foo ();
+		return 0;
+	}
+
+	enum AnEnum {
+		A,
+		B
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	public static string constrained_tostring<T> (T t) {
+		return t.ToString ();
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	public static bool constrained_equals<T> (T t1, T t2) {
+		var c = EqualityComparer<T>.Default;
+
+		return c.Equals (t1, t2);
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	public static int constrained_gethashcode<T> (T t) {
+		return t.GetHashCode ();
+	}
+
+	public static int test_0_constrained_partial_sharing () {
+		string s;
+
+		s = constrained_tostring<int> (5);
+		if (s != "5")
+			return 1;
+		s = constrained_tostring<AnEnum> (AnEnum.B);
+		if (s != "B")
+			return 2;
+
+		if (!constrained_equals<int> (1, 1))
+			return 3;
+		if (constrained_equals<int> (1, 2))
+			return 4;
+		if (!constrained_equals<AnEnum> (AnEnum.A, AnEnum.A))
+			return 5;
+		if (constrained_equals<AnEnum> (AnEnum.A, AnEnum.B))
+			return 6;
+
+		int i = constrained_gethashcode<int> (5);
+		if (i != 5)
+			return 7;
+		i = constrained_gethashcode<AnEnum> (AnEnum.B);
+		if (i != 1)
+			return 8;
+		return 0;
+	}
+
+	enum Enum1 {
+		A,
+		B
+	}
+
+	enum Enum2 {
+		A,
+		B
+	}
+
+	public static int test_0_partial_sharing_ginst () {
+		var l1 = new List<KeyValuePair<int, Enum1>> ();
+		l1.Add (new KeyValuePair<int, Enum1>(5, Enum1.A));
+		if (l1 [0].Key != 5)
+			return 1;
+		if (l1 [0].Value != Enum1.A)
+			return 2;
+		var l2 = new List<KeyValuePair<int, Enum2>> ();
+		l2.Add (new KeyValuePair<int, Enum2>(5, Enum2.B));
+		if (l2 [0].Key != 5)
+			return 3;
+		if (l2 [0].Value != Enum2.B)
+			return 4;
+		return 0;
+	}
+
+	static object delegate_8_args_res;
+
+	public static int test_0_delegate_8_args () {
+		delegate_8_args_res = null;
+		Action<string, string, string, string, string, string, string,
+			string> test = (a, b, c, d, e, f, g, h) =>
+            {
+				delegate_8_args_res = h;
+            };
+		test("a", "b", "c", "d", "e", "f", "g", "h");
+		return delegate_8_args_res == "h" ? 0 : 1;
+	}
 }
+
+#if !MOBILE
+class GenericsTests : Tests
+{
+}
+#endif

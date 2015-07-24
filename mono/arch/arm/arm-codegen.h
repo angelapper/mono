@@ -16,19 +16,6 @@ extern "C" {
 typedef unsigned int arminstr_t;
 typedef unsigned int armword_t;
 
-/* Helper functions */
-arminstr_t* arm_emit_std_prologue(arminstr_t* p, unsigned int local_size);
-arminstr_t* arm_emit_std_epilogue(arminstr_t* p, unsigned int local_size, int pop_regs);
-arminstr_t* arm_emit_lean_prologue(arminstr_t* p, unsigned int local_size, int push_regs);
-int arm_is_power_of_2(armword_t val);
-int calc_arm_mov_const_shift(armword_t val);
-int is_arm_const(armword_t val);
-int arm_bsf(armword_t val);
-arminstr_t* arm_mov_reg_imm32_cond(arminstr_t* p, int reg, armword_t imm32, int cond);
-arminstr_t* arm_mov_reg_imm32(arminstr_t* p, int reg, armword_t imm32);
-
-
-
 #if defined(_MSC_VER) || defined(__CC_NORCROFT)
 	void __inline _arm_emit(arminstr_t** p, arminstr_t i) {**p = i; (*p)++;}
 #	define ARM_EMIT(p, i) _arm_emit((arminstr_t**)&p, (arminstr_t)(i))
@@ -1031,12 +1018,17 @@ typedef struct {
 	ARM_RORS_REG_COND(p, rd, rm, rs, ARMCOND_AL)
 #define ARM_RORS_REG_REG(p, rd, rm, rs) ARM_RORS_REG(p, rd, rm, rs)
 
+#ifdef __native_client_codegen__
+#define ARM_DBRK(p) ARM_EMIT(p, 0xE7FEDEF0)
+#else
 #define ARM_DBRK(p) ARM_EMIT(p, 0xE6000010)
+#endif
 #define ARM_IASM_DBRK() ARM_IASM_EMIT(0xE6000010)
 
 #define ARM_INC(p, reg) ARM_ADD_REG_IMM8(p, reg, reg, 1)
 #define ARM_DEC(p, reg) ARM_SUB_REG_IMM8(p, reg, reg, 1)
 
+#define ARM_MLS(p, rd, rn, rm, ra) ARM_EMIT((p), (ARMCOND_AL << 28) | (0x6 << 20) | ((rd) << 16) | ((ra) << 12) | ((rm) << 8) | (0x9 << 4) | ((rn) << 0))
 
 /* ARM V5 */
 
@@ -1094,6 +1086,25 @@ typedef union {
 
 #define ARM_MCR(p, coproc, opc1, rt, crn, crm, opc2) \
 	ARM_MCR_COND ((p), (coproc), (opc1), (rt), (crn), (crm), (opc2), ARMCOND_AL)
+
+/* ARMv7VE */
+#define ARM_SDIV_COND(p, rd, rn, rm, cond) ARM_EMIT (p, (((cond) << 28) | (0xe << 23) | (0x1 << 20) | ((rd) << 16) | (0xf << 12) | ((rm) << 8) | (0x0 << 5) | (0x1 << 4) | ((rn) << 0)))
+#define ARM_SDIV(p, rd, rn, rm) ARM_SDIV_COND ((p), (rd), (rn), (rm), ARMCOND_AL)
+
+#define ARM_UDIV_COND(p, rd, rn, rm, cond) ARM_EMIT (p, (((cond) << 28) | (0xe << 23) | (0x3 << 20) | ((rd) << 16) | (0xf << 12) | ((rm) << 8) | (0x0 << 5) | (0x1 << 4) | ((rn) << 0)))
+#define ARM_UDIV(p, rd, rn, rm) ARM_UDIV_COND ((p), (rd), (rn), (rm), ARMCOND_AL)
+
+/* ARMv7 */
+
+typedef enum {
+	ARM_DMB_SY = 0xf,
+} ArmDmbFlags;
+
+#define ARM_DMB(p, option) ARM_EMIT ((p), ((0xf << 28) | (0x57 << 20) | (0xf << 16) | (0xf << 12) | (0x0 << 8) | (0x5 << 4) | ((option) << 0)))
+
+#define ARM_LDREX_REG(p, rt, rn) ARM_EMIT ((p), ((ARMCOND_AL << 28) | (0xc << 21) | (0x1 << 20) | ((rn) << 16) | ((rt) << 12)) | (0xf << 8) | (0x9 << 4) | 0xf << 0)
+
+#define ARM_STREX_REG(p, rd, rt, rn) ARM_EMIT ((p), ((ARMCOND_AL << 28) | (0xc << 21) | (0x0 << 20) | ((rn) << 16) | ((rd) << 12)) | (0xf << 8) | (0x9 << 4) | ((rt) << 0))
 
 #ifdef __cplusplus
 }

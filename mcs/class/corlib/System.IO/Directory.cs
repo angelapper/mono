@@ -72,8 +72,6 @@ namespace System.IO
 			if (File.Exists(path))
 				throw new IOException ("Cannot create " + path + " because a file with the same name already exists.");
 			
-			// LAMESPEC: with .net 1.0 version this throw NotSupportedException and msdn says so too
-			// but v1.1 throws ArgumentException.
 			if (Environment.IsRunningOnWindows && path == ":")
 				throw new ArgumentException ("Only ':' In path");
 			
@@ -140,7 +138,7 @@ namespace System.IO
 			if (!success) {
 				/*
 				 * FIXME:
-				 * In io-layer/io.c rmdir returns error_file_not_found if directory does not exists.
+				 * In io-layer/io.c rmdir returns error_file_not_found if directory does not exist.
 				 * So maybe this could be handled somewhere else?
 				 */
 				if (error == MonoIOError.ERROR_FILE_NOT_FOUND) {
@@ -500,7 +498,6 @@ namespace System.IO
 			return result;
 		}
 
-#if NET_4_0
 		public static string[] GetFileSystemEntries (string path, string searchPattern, SearchOption searchOption)
 		{
 			// Take the simple way home:
@@ -537,7 +534,6 @@ namespace System.IO
 			IntPtr handle;
 			MonoIOError error;
 			FileAttributes rattr;
-			
 			string s = MonoIO.FindFirst (path, path_with_pattern, out rattr, out error, out handle);
 			try {
 				while (s != null) {
@@ -545,7 +541,7 @@ namespace System.IO
 					if (((rattr & FileAttributes.Directory) == 0) && rattr != 0)
 						rattr |= FileAttributes.Normal;
 
-					if ((rattr & FileAttributes.ReparsePoint) == 0 && (rattr & kind) != 0)
+					if ((rattr & kind) != 0)
 						yield return s;
 
 					s = MonoIO.FindNext (handle, out rattr, out error);
@@ -563,7 +559,7 @@ namespace System.IO
 
 				try {
 					while (s != null) {
-						if ((rattr & FileAttributes.Directory) != 0)
+						if ((rattr & FileAttributes.Directory) != 0 && (rattr & FileAttributes.ReparsePoint) == 0)
 							foreach (string child in EnumerateKind (s, searchPattern, searchOption, kind))
 								yield return child;
 						s = MonoIO.FindNext (handle, out rattr, out error);
@@ -635,7 +631,6 @@ namespace System.IO
 			return EnumerateKind (path, "*", SearchOption.TopDirectoryOnly, FileAttributes.Normal | FileAttributes.Directory);
 		}
 		
-#endif
 
 		public static DirectorySecurity GetAccessControl (string path, AccessControlSections includeSections)
 		{

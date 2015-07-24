@@ -31,7 +31,6 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Xml;
 using System.Xml.Schema;
-using Mono.Xml.XPath;
 
 namespace System.ServiceModel.Channels
 {
@@ -96,12 +95,19 @@ namespace System.ServiceModel.Channels
 
 		public T GetBody<T> ()
 		{
-			return GetBody<T> (new DataContractSerializer (typeof (T)));
+			return OnGetBody<T> (GetReaderAtBodyContents ());
 		}
 
 		public T GetBody<T> (XmlObjectSerializer xmlFormatter)
 		{
-			return (T) xmlFormatter.ReadObject (GetReaderAtBodyContents ());
+			// FIXME: Somehow use OnGetBody() here as well?
+			return (T)xmlFormatter.ReadObject (GetReaderAtBodyContents ());
+		}
+
+		protected virtual T OnGetBody<T> (XmlDictionaryReader reader)
+		{
+			var xmlFormatter = new DataContractSerializer (typeof (T));
+			return (T)xmlFormatter.ReadObject (reader);
 		}
 
 		public string GetBodyAttribute (string localName, string ns)
@@ -161,7 +167,8 @@ namespace System.ServiceModel.Channels
 			if (!IsEmpty) {
 				if (copied_message != null)
 					copied_message.WriteBodyContents (writer);
-				OnWriteBodyContents (writer);
+				else
+					OnWriteBodyContents (writer);
 			}
 			else if (Version.Envelope == EnvelopeVersion.None)
 				WriteXsiNil (writer);
@@ -251,9 +258,16 @@ namespace System.ServiceModel.Channels
 				WriteBodyContents (body);
 			}
 
+			var nt = new NameTable ();
+			var nsmgr = new XmlNamespaceManager (nt);
+			nsmgr.AddNamespace ("s", Version.Envelope.Namespace);
+			nsmgr.AddNamespace ("a", Version.Addressing.Namespace);
+			var pc = new XmlParserContext (nt, nsmgr, null, XmlSpace.None);
+			
 			var rs = new XmlReaderSettings ();
 			rs.ConformanceLevel = ConformanceLevel.Auto;
-			return XmlDictionaryReader.CreateDictionaryReader (XmlReader.Create (new StringReader (sw.ToString ()), rs));
+			
+			return XmlDictionaryReader.CreateDictionaryReader (XmlReader.Create (new StringReader (sw.ToString ()), rs, pc));
 		}
 
 		protected abstract void OnWriteBodyContents (

@@ -27,7 +27,6 @@
 // Copyright (C) 2004 Novell, Inc (http://www.novell.com)
 //
 
-#if NET_2_0
 using System;
 using System.Collections;
 using System.Collections.Specialized;
@@ -40,7 +39,8 @@ namespace System.Configuration
 	{
 		SectionGroupInfo group;
 		Configuration config;
-		
+		static readonly object lockObject = new object();
+		 
 		internal ConfigurationSectionCollection (Configuration config, SectionGroupInfo group)
 			: base (StringComparer.Ordinal)
 		{
@@ -67,7 +67,9 @@ namespace System.Configuration
 					if (secData == null) return null;
 					sec = config.GetSectionInstance (secData, true);
 					if (sec == null) return null;
-					BaseSet (name, sec);
+					lock(lockObject) {
+						BaseSet (name, sec);
+					}
 				}
 				return sec;
 			}
@@ -138,4 +140,4 @@ namespace System.Configuration
 		}
 	}
 }
-#endif
+

@@ -77,15 +77,14 @@ namespace Microsoft.Build.BuildEngine {
 					} else if (onErrorFound)
 						throw new InvalidProjectFileException (
 							"The element <OnError> must be last under element <Target>. Found element <Error> instead.");
-#if NET_3_5
 					else if (xe.Name == "ItemGroup") {
-						buildTasks.Add (new BuildTaskItemGroup (xe, this));
+						var group = new BuildTaskItemGroup (xe, this);
+						buildTasks.AddRange (group.Items);
 						continue;
 					} else if (xe.Name == "PropertyGroup") {
 						buildTasks.Add (new BuildTaskPropertyGroup (xe, this));
 						continue;
 					}
-#endif
 					else
 						buildTasks.Add (new BuildTask (xe, this));
 				}
@@ -127,15 +126,23 @@ namespace Microsoft.Build.BuildEngine {
 		internal bool Build (string built_targets_key)
 		{
 			bool executeOnErrors;
-			return Build (built_targets_key, out executeOnErrors);
+			return Build (built_targets_key, null, out executeOnErrors);
 		}
 
-		bool Build (string built_targets_key, out bool executeOnErrors)
+		bool Build (string built_targets_key, string parentTarget, out bool executeOnErrors)
 		{
+			string message;
+			if (parentTarget != null)
+				message = string.Format ("\"{0}\" in project \"{1}\" (\"{2}\"); \"{3}\" depends on it", Name, project.FullFileName, TargetFile, parentTarget);
+			else
+				message = string.Format ("\"{0}\" in project \"{1}\" (\"{2}\")", Name, project.FullFileName, TargetFile);
+
 			project.PushThisFileProperty (TargetFile);
 			try {
+				LogMessage (MessageImportance.Low, "Building target {0}.", message);
 				return BuildActual (built_targets_key, out executeOnErrors);
 			} finally {
+				LogMessage (MessageImportance.Low, "Done building target {0}.", message);
 				project.PopThisFileProperty ();
 			}
 		}
@@ -167,14 +174,10 @@ namespace Microsoft.Build.BuildEngine {
 			try {
 				buildState = BuildState.Started;
 
-#if NET_4_0
 				result = BuildDependencies (out executeOnErrors) &&
 						BuildBeforeThisTargets (out executeOnErrors) &&
 						DoBuild (out executeOnErrors) && // deps & Before targets built fine, do main build
 						BuildAfterThisTargets (out executeOnErrors);
-#else
-				result = BuildDependencies (out executeOnErrors) && DoBuild (out executeOnErrors);
-#endif
 
 				buildState = BuildState.Finished;
 			} catch (Exception e) {
@@ -215,7 +218,6 @@ namespace Microsoft.Build.BuildEngine {
 			return result;
 		}
 
-#if NET_4_0
 		bool BuildBeforeThisTargets (out bool executeOnErrors)
 		{
 			executeOnErrors = false;
@@ -237,7 +239,6 @@ namespace Microsoft.Build.BuildEngine {
 
 			return result;
 		}
-#endif
 
 		bool BuildOtherTargets (IEnumerable<string> targetNames, Action<string> missing_target, out bool executeOnErrors)
 		{
@@ -255,7 +256,7 @@ namespace Microsoft.Build.BuildEngine {
 				}
 
 				if (t.BuildState == BuildState.NotStarted)
-					if (!t.Build (null, out executeOnErrors))
+					if (!t.Build (null, Name, out executeOnErrors))
 						return false;
 
 				if (t.BuildState == BuildState.Started)
@@ -370,7 +371,6 @@ namespace Microsoft.Build.BuildEngine {
 			}
 		}
 
-#if NET_4_0
 		internal string BeforeTargets {
 			get { return targetElement.GetAttribute ("BeforeTargets"); }
 		}
@@ -381,7 +381,6 @@ namespace Microsoft.Build.BuildEngine {
 
 		internal List<string> BeforeThisTargets { get; set; }
 		internal List<string> AfterThisTargets { get; set; }
-#endif
 
 		internal List<IBuildTask> BuildTasks {
 			get { return buildTasks; }
@@ -402,9 +401,12 @@ namespace Microsoft.Build.BuildEngine {
 
 		ITaskItem [] OutputsAsITaskItems {
 			get {
-				string outputs = targetElement.GetAttribute ("Outputs");
-				if (outputs == String.Empty)
-					return new ITaskItem [0];
+				var outputs = targetElement.GetAttribute ("Returns");
+				if (string.IsNullOrEmpty (outputs)) {
+					outputs = targetElement.GetAttribute ("Outputs");
+					if (string.IsNullOrEmpty (outputs))
+						return new ITaskItem [0];
+				}
 
 				Expression e = new Expression ();
 				e.Parse (outputs, ParseOptions.AllowItemsNoMetadataAndSplit);

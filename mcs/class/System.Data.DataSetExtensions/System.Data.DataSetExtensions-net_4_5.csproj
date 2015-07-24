@@ -5,10 +5,10 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{99723243-801A-4F86-A51B-F88737F567B2}</ProjectGuid>
+    <ProjectGuid>{9D2DBCBA-6C1E-405B-BCBA-20406EA9501F}</ProjectGuid>
     <OutputType>Library</OutputType>
     <NoWarn>1699</NoWarn>
-    <OutputPath>bin\Debug\System.Data.DataSetExtensions-net_4_5</OutputPath>
+    <OutputPath>./../../class/lib/net_4_5</OutputPath>
     <NoStdLib>True</NoStdLib>
     <NoConfig>True</NoConfig>
     
@@ -19,12 +19,13 @@
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
+  
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <NoWarn>1699</NoWarn>
     <Optimize>false</Optimize>
-    <DefineConstants>DEBUG;TRACE;NET_1_1;NET_2_0;NET_3_0;NET_3_5;NET_4_0;NET_4_5</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;NET_4_0;NET_4_5;MONO;DISABLE_CAS_USE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -32,7 +33,7 @@
     <DebugType>pdbonly</DebugType>
     <NoWarn>1699</NoWarn>
     <Optimize>true</Optimize>
-    <DefineConstants>NET_1_1;NET_2_0;NET_3_0;NET_3_5;NET_4_0;NET_4_5</DefineConstants>
+    <DefineConstants>NET_4_0;NET_4_5;MONO;DISABLE_CAS_USE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -44,21 +45,20 @@
   </PropertyGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
+    <Compile Include="..\..\..\external\referencesource\System.Data.DataSetExtensions\System\Data\DataRowComparer.cs" />
+    <Compile Include="..\..\..\external\referencesource\System.Data.DataSetExtensions\System\Data\DataRowExtensions.cs" />
+    <Compile Include="..\..\..\external\referencesource\System.Data.DataSetExtensions\System\Data\DataSetUtil.cs" />
+    <Compile Include="..\..\..\external\referencesource\System.Data.DataSetExtensions\System\Data\DataTableExtensions.cs" />
+    <Compile Include="..\..\..\external\referencesource\System.Data.DataSetExtensions\System\Data\EnumerableRowCollection.cs" />
+    <Compile Include="..\..\..\external\referencesource\System.Data.DataSetExtensions\System\Data\EnumerableRowCollectionExtensions.cs" />
+    <Compile Include="..\..\..\external\referencesource\System.Data.DataSetExtensions\System\Data\LinqDataView.cs" />
+    <Compile Include="..\..\..\external\referencesource\System.Data.DataSetExtensions\System\Data\OrderedEnumerableRowCollection.cs" />
+    <Compile Include="..\..\..\external\referencesource\System.Data.DataSetExtensions\System\Data\SortExpressionBuilder.cs" />
+    <Compile Include="..\..\..\external\referencesource\System.Data.DataSetExtensions\System\Data\TypedTableBase.cs" />
+    <Compile Include="..\..\..\external\referencesource\System.Data.DataSetExtensions\System\Data\TypedTableBaseExtensions.cs" />
     <Compile Include="..\..\build\common\Consts.cs" />
-    <Compile Include="..\..\build\common\Locale.cs" />
-    <Compile Include="..\..\build\common\MonoTODOAttribute.cs" />
     <Compile Include="Assembly\AssemblyInfo.cs" />
-    <Compile Include="System.Data\DataRowComparer.cs" />
-    <Compile Include="System.Data\DataRowComparer_1.cs" />
-    <Compile Include="System.Data\DataRowExtensions.cs" />
-    <Compile Include="System.Data\DataTableExtensions.cs" />
-    <Compile Include="System.Data\EnumerableRowCollection.cs" />
-    <Compile Include="System.Data\EnumerableRowCollection_1.cs" />
-    <Compile Include="System.Data\EnumerableRowCollectionExtensions.cs" />
-    <Compile Include="System.Data\OrderedEnumerableRowCollection.cs" />
-    <Compile Include="System.Data\RowEnumerableDataReader.cs" />
-    <Compile Include="System.Data\TypedTableBase.cs" />
-    <Compile Include="System.Data\TypedTableBaseExtensions.cs" />  </ItemGroup>
+    <Compile Include="ReferenceSources\Strings.cs" />  </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
@@ -67,40 +67,44 @@
   </Target>
   -->
   <PropertyGroup>
-    <PreBuildEvent>
+    <PreBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">
 
     </PreBuildEvent>
-    <PostBuildEvent>
-      xcopy $(TargetName).* $(ProjectDir)..\lib\net_4_5\ /Y /R /D
-  </PostBuildEvent>
+    <PreBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">
+
+    </PreBuildEvent>
+
+    <PostBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">
+
+    </PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">
+
+    </PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\corlib\corlib-net_4_5.csproj">
-      <Project>{05A7A0C2-6946-4CF5-9ED3-44AB0B428C4E}</Project>
-      <Name>corlib\corlib-net_4_5</Name>
+    <ProjectReference Include="../corlib/corlib-net_4_5.csproj">
+      <Project>{33BF0182-AC5C-464C-995B-C9CFE74E1A95}</Project>
+      <Name>corlib-net_4_5</Name>
     </ProjectReference>
-    <ProjectReference Include="..\System.Core\System.Core-net_4_5.csproj">
-      <Project>{E77D8877-AEAD-4FDF-8A44-36AAA0B20653}</Project>
-      <Name>System.Core\System.Core-net_4_5</Name>
+    <ProjectReference Include="../System.Core/System.Core-net_4_5.csproj">
+      <Project>{D92530F4-3F2B-4351-BD21-9D6BEE6D2A4E}</Project>
+      <Name>System.Core-net_4_5</Name>
     </ProjectReference>
-    <ProjectReference Include="..\System\System-net_4_5-2.csproj">
-      <Project>{34966210-D64D-419C-94A4-9A6093CE5882}</Project>
-      <Name>System\System-net_4_5-2</Name>
+    <ProjectReference Include="../System/System-net_4_5.csproj">
+      <Project>{FFAC0B73-D997-493B-9C62-27656CD858BB}</Project>
+      <Name>System-net_4_5</Name>
     </ProjectReference>
-    <ProjectReference Include="..\System.Data\System.Data-net_4_5.csproj">
-      <Project>{5CAB0F19-4A6F-4B4B-96DA-5677F88E2EF6}</Project>
-      <Name>System.Data\System.Data-net_4_5</Name>
+    <ProjectReference Include="../System.Data/System.Data-net_4_5.csproj">
+      <Project>{9A33954F-57A8-4D75-B1D8-0F81808A0DD4}</Project>
+      <Name>System.Data-net_4_5</Name>
     </ProjectReference>
-    <ProjectReference Include="..\System.XML\System.Xml-net_4_5-1.csproj">
-      <Project>{6374B2FC-93C6-4FD0-8CF0-8EB12F5AC71D}</Project>
-      <Name>System.XML\System.Xml-net_4_5-1</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\System.Web\System.Web-net_4_5-1.csproj">
-      <Project>{A945645C-6DF3-414E-B5F1-25DC35C95136}</Project>
-      <Name>System.Web\System.Web-net_4_5-1</Name>
+    <ProjectReference Include="../System.XML/System.Xml-net_4_5.csproj">
+      <Project>{2951DEC2-4393-4A78-83F9-42EB39CB708F}</Project>
+      <Name>System.Xml-net_4_5</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
   </ItemGroup>
 </Project>
+

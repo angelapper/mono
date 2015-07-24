@@ -28,7 +28,6 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-#if NET_2_0
 
 using System;
 using System.ComponentModel;
@@ -56,7 +55,6 @@ namespace System.Web.Configuration
 		static ConfigurationProperty shutdownTimeoutProp;
 		static ConfigurationProperty useFullyQualifiedRedirectUrlProp;
 		static ConfigurationProperty waitChangeNotificationProp;
-#if NET_4_0
 		static ConfigurationProperty requestPathInvalidCharactersProp;
 		static ConfigurationProperty requestValidationTypeProp;
 		static ConfigurationProperty requestValidationModeProp;
@@ -64,7 +62,8 @@ namespace System.Web.Configuration
 		static ConfigurationProperty maxUrlLengthProp;
 		static ConfigurationProperty encoderTypeProp;
 		static ConfigurationProperty relaxedUrlToFileSystemMappingProp;
-#endif
+		static ConfigurationProperty targetFrameworkProp;
+		static ConfigurationProperty allowDynamicModuleRegistrationProp;
 		static ConfigurationPropertyCollection properties;
 
 		static HttpRuntimeSection ()
@@ -117,7 +116,6 @@ namespace System.Web.Configuration
 										TypeDescriptor.GetConverter (typeof (int)),
 										PropertyHelper.IntFromZeroToMaxValidator,
 										ConfigurationPropertyOptions.None);
-#if NET_4_0
 			requestPathInvalidCharactersProp = new ConfigurationProperty ("requestPathInvalidCharacters", typeof (string), "<,>,*,%,&,:,\\,?");
 			requestValidationTypeProp = new ConfigurationProperty ("requestValidationType", typeof (string),"System.Web.Util.RequestValidator",
 									       TypeDescriptor.GetConverter (typeof (string)),
@@ -140,7 +138,12 @@ namespace System.Web.Configuration
 								     PropertyHelper.NonEmptyStringValidator,
 								     ConfigurationPropertyOptions.None);
 			relaxedUrlToFileSystemMappingProp = new ConfigurationProperty ("relaxedUrlToFileSystemMapping", typeof (bool), false);
-#endif
+			targetFrameworkProp = new ConfigurationProperty ("targetFramework", typeof (Version), new Version (4, 0),
+										PropertyHelper.VersionConverter,
+										PropertyHelper.DefaultValidator,
+										ConfigurationPropertyOptions.None);
+			allowDynamicModuleRegistrationProp = new ConfigurationProperty ("allowDynamicModuleRegistration", typeof(bool), true,
+										ConfigurationPropertyOptions.None);
 			
 			properties = new ConfigurationPropertyCollection();
 			properties.Add (apartmentThreadingProp);
@@ -161,7 +164,6 @@ namespace System.Web.Configuration
 			properties.Add (shutdownTimeoutProp);
 			properties.Add (useFullyQualifiedRedirectUrlProp);
 			properties.Add (waitChangeNotificationProp);
-#if NET_4_0
 			properties.Add (requestPathInvalidCharactersProp);
 			properties.Add (requestValidationTypeProp);
 			properties.Add (requestValidationModeProp);
@@ -169,7 +171,8 @@ namespace System.Web.Configuration
 			properties.Add (maxUrlLengthProp);
 			properties.Add (encoderTypeProp);
 			properties.Add (relaxedUrlToFileSystemMappingProp);
-#endif
+			properties.Add (targetFrameworkProp);
+			properties.Add (allowDynamicModuleRegistrationProp);
 		}
 
 		public HttpRuntimeSection()
@@ -295,7 +298,6 @@ namespace System.Web.Configuration
 			set { base[waitChangeNotificationProp] = value; }
 		}
 
-#if NET_4_0
 		[ConfigurationProperty ("requestPathInvalidCharacters", DefaultValue = ",*,%,&,:,\\,?")]
 		public string RequestPathInvalidCharacters {
 			get { return (string) base [requestPathInvalidCharactersProp]; }
@@ -342,11 +344,20 @@ namespace System.Web.Configuration
 			get { return (bool) base [relaxedUrlToFileSystemMappingProp]; }
 			set { base [relaxedUrlToFileSystemMappingProp] = value; }
 		}
-#endif
+		[ConfigurationProperty ("targetFramework", DefaultValue = "4.0")]
+		[TypeConverter ("System.Web.Configuration.VersionConverter")]
+		public Version TargetFramework {
+			get { return (Version) base [targetFrameworkProp]; }
+			set { base [targetFrameworkProp] = value; }
+		}
 		protected internal override ConfigurationPropertyCollection Properties {
 			get { return properties; }
+		}
+		[ConfigurationProperty ("allowDynamicModuleRegistration", DefaultValue = "True")]
+		public bool AllowDynamicModuleRegistration {
+			get { return (bool) base [allowDynamicModuleRegistrationProp]; }
+			set { base [allowDynamicModuleRegistrationProp] = value; }
 		}
 	}
 }
 
-#endif

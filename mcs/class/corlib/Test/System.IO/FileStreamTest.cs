@@ -15,6 +15,7 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 
 namespace MonoTests.System.IO
 {
@@ -86,12 +87,13 @@ namespace MonoTests.System.IO
 		[Test]
 		public void CtorFileNotFoundException_Mode_Open ()
 		{
+			const string file_name = "thisfileshouldnotexist.test";
 			// absolute path
-			string path = TempFolder + DSC + "thisfileshouldnotexists.test";
+			string path = TempFolder + DSC + file_name;
 			DeleteFile (path);
 			FileStream stream = null;
 			try {
-				stream = new FileStream (TempFolder + DSC + "thisfileshouldnotexists.test", FileMode.Open);
+				stream = new FileStream (TempFolder + DSC + file_name, FileMode.Open);
 				Assert.Fail ("#A1");
 			} catch (FileNotFoundException ex) {
 				Assert.AreEqual (typeof (FileNotFoundException), ex.GetType (), "#A2");
@@ -110,14 +112,18 @@ namespace MonoTests.System.IO
 			// relative path
 			string orignalCurrentDir = Directory.GetCurrentDirectory ();
 			Directory.SetCurrentDirectory (TempFolder);
+
+			// If TempFolder is a symlink, Mono will follow it and ex.FileName below will contain
+			// the real directory name, not that of the TempFolder symlink and the test will fail
+			// (happens e.g. on Android M)
+			string realTempDir = Directory.GetCurrentDirectory ();
+			path = realTempDir + DSC + file_name;
+
 			try {
-				stream = new FileStream ("thisfileshouldnotexists.test", FileMode.Open);
+				stream = new FileStream (file_name, FileMode.Open);
 				Assert.Fail ("#B1");
 			} catch (FileNotFoundException ex) {
 				Assert.AreEqual (typeof (FileNotFoundException), ex.GetType (), "#B2");
-				// under OSX 'var' is a symlink to 'private/var'
-				if (MacOSX)
-					path = "/private" + path;
 				Assert.AreEqual (path, ex.FileName, "#B3");
 				Assert.IsNull (ex.InnerException, "#B4");
 				Assert.IsNotNull (ex.Message, "#B5");
@@ -134,8 +140,9 @@ namespace MonoTests.System.IO
 		[Test]
 		public void CtorFileNotFoundException_Mode_Truncate ()
 		{
+			const string file_name = "thisfileshouldNOTexist.test";
 			// absolute path
-			string path = TempFolder + DSC + "thisfileshouldNOTexists.test";
+			string path = TempFolder + DSC + file_name;
 			DeleteFile (path);
 			FileStream stream = null;
 			try {
@@ -158,14 +165,18 @@ namespace MonoTests.System.IO
 			// relative path
 			string orignalCurrentDir = Directory.GetCurrentDirectory ();
 			Directory.SetCurrentDirectory (TempFolder);
+
+			// If TempFolder is a symlink, Mono will follow it and ex.FileName below will contain
+			// the real directory name, not that of the TempFolder symlink and the test will fail
+			// (happens e.g. on Android M)
+			string realTempDir = Directory.GetCurrentDirectory ();
+			path = realTempDir + DSC + file_name;
+
 			try {
-				stream = new FileStream ("thisfileshouldNOTexists.test", FileMode.Truncate);
+				stream = new FileStream (file_name, FileMode.Truncate);
 				Assert.Fail ("#B1");
 			} catch (FileNotFoundException ex) {
 				Assert.AreEqual (typeof (FileNotFoundException), ex.GetType (), "#B2");
-				// under OSX 'var' is a symlink to 'private/var'
-				if (MacOSX)
-					path = "/private" + path;
 				Assert.AreEqual (path, ex.FileName, "#B3");
 				Assert.IsNull (ex.InnerException, "#B4");
 				Assert.IsNotNull (ex.Message, "#B5");
@@ -182,8 +193,9 @@ namespace MonoTests.System.IO
 		[Test]
 		public void CtorIOException1 ()
 		{
+			const string file_name = "thisfileshouldexists.test";
 			// absolute path
-			string path = TempFolder + DSC + "thisfileshouldexists.test";
+			string path = TempFolder + DSC + file_name;
 			FileStream stream = null;
 			DeleteFile (path);
 			try {
@@ -208,11 +220,18 @@ namespace MonoTests.System.IO
 			// relative path
 			string orignalCurrentDir = Directory.GetCurrentDirectory ();
 			Directory.SetCurrentDirectory (TempFolder);
+
+			// If TempFolder is a symlink, Mono will follow it and ex.FileName below will contain
+			// the real directory name, not that of the TempFolder symlink and the test will fail
+			// (happens e.g. on Android M)
+			string realTempDir = Directory.GetCurrentDirectory ();
+			path = realTempDir + DSC + file_name;
+
 			try {
-				stream = new FileStream ("thisfileshouldexists.test", FileMode.CreateNew);
+				stream = new FileStream (file_name, FileMode.CreateNew);
 				stream.Close ();
 				stream = null;
-				stream = new FileStream ("thisfileshouldexists.test", FileMode.CreateNew);
+				stream = new FileStream (file_name, FileMode.CreateNew);
 				Assert.Fail ("#B1");
 			} catch (IOException ex) {
 				Assert.AreEqual (typeof (IOException), ex.GetType (), "#B2");
@@ -326,8 +345,14 @@ namespace MonoTests.System.IO
 		{
 			string orignalCurrentDir = Directory.GetCurrentDirectory ();
 			Directory.SetCurrentDirectory (TempFolder);
+
+			// If TempFolder is a symlink, Mono will follow it and ex.FileName below will contain
+			// the real directory name, not that of the TempFolder symlink and the test will fail
+			// (happens e.g. on Android M)
+			string realTempDir = Directory.GetCurrentDirectory ();
+			
 			string relativePath = "DirectoryDoesNotExist" + Path.DirectorySeparatorChar + "file.txt";
-			string fullPath = Path.Combine (TempFolder, relativePath);
+			string fullPath = Path.Combine (realTempDir, relativePath);
 			try {
 				new FileStream (relativePath, FileMode.Open);
 				Assert.Fail ("#A1");
@@ -705,7 +730,6 @@ namespace MonoTests.System.IO
 			}
 		}
 
-#if !TARGET_JVM // No support IntPtr file handles under TARGET_JVM
 		[Test, ExpectedException (typeof (IOException))]
 		public void CtorIOException2 ()
 		{
@@ -717,9 +741,7 @@ namespace MonoTests.System.IO
 					stream.Close ();
 			}
 		}
-#endif // TARGET_JVM
 
-		[Category("TargetJvmNotSupported")] // File sharing not supported for TARGET_JVM
 		[Test, ExpectedException (typeof (IOException))]
 		public void CtorIOException ()
 		{
@@ -767,7 +789,6 @@ namespace MonoTests.System.IO
 		}
 
 		[Test]
-		[Category("TargetJvmNotSupported")] // File sharing not supported for TARGET_JVM
 		[ExpectedException (typeof (IOException))]
 		public void CtorAccess1Read2Write ()
 		{
@@ -793,7 +814,6 @@ namespace MonoTests.System.IO
 		}
 
 		[Test]
-		[Category("TargetJvmNotSupported")] // File sharing not supported for TARGET_JVM
 		[ExpectedException (typeof (IOException))]
 		public void CtorAccess1Write2Write ()
 		{
@@ -1021,7 +1041,6 @@ namespace MonoTests.System.IO
 			DeleteFile (path);
 		}
 
-		[Category("TargetJvmNotSupported")] // File locking not supported for TARGET_JVM
 		public void TestLock ()
 		{
 			string path = TempFolder + Path.DirectorySeparatorChar + "TestLock";
@@ -1310,7 +1329,6 @@ namespace MonoTests.System.IO
 			}
 		}
 
-#if !TARGET_JVM // No support IntPtr file handles under TARGET_JVM
 		// Check that the stream is flushed even when it doesn't own the
 		// handle
 		[Test]
@@ -1330,7 +1348,6 @@ namespace MonoTests.System.IO
 			Assert.AreEqual ((int) '1', s.ReadByte ());
 			s.Close ();
 		}
-#endif // TARGET_JVM
 
 		private void DeleteFile (string path)
 		{
@@ -1446,14 +1463,12 @@ namespace MonoTests.System.IO
 			}
 		}
 
-#if !TARGET_JVM // No support IntPtr file handles under TARGET_JVM
 		[Test]
 		[ExpectedException (typeof (ArgumentException))]
 		public void Constructor_InvalidFileHandle ()
 		{
 			new FileStream ((IntPtr) (-1L), FileAccess.Read);
 		}
-#endif // TARGET_JVM
 
 		[Test]
 		public void PositionAfterSetLength ()
@@ -1492,7 +1507,6 @@ namespace MonoTests.System.IO
 		}
 
 		[Test]
-		[Category("TargetJvmNotSupported")] // Async IO not supported for TARGET_JVM
 		[ExpectedException (typeof (ObjectDisposedException))]
 		public void BeginRead_Disposed ()
 		{
@@ -1504,7 +1518,6 @@ namespace MonoTests.System.IO
 		}
 
 		[Test]
-		[Category("TargetJvmNotSupported")] // Async IO not supported for TARGET_JVM
 		[ExpectedException (typeof (ObjectDisposedException))]
 		public void BeginWrite_Disposed ()
 		{
@@ -1515,8 +1528,36 @@ namespace MonoTests.System.IO
 			stream.EndWrite (stream.BeginWrite (new byte[8], 0, 8, null, null));
 		}
 
+		static IAsyncResult DoBeginWrite(Stream stream, ManualResetEvent mre, byte[] RandomBuffer)
+		{
+			return stream.BeginWrite (RandomBuffer, 0, RandomBuffer.Length, ar => {
+				stream.EndWrite (ar);
+
+				// we don't supply an ManualResetEvent so this will throw an NRE on the second run
+				// which nunit-console will ignore (but other test runners don't like that)
+				if (mre == null)
+					return;
+
+				DoBeginWrite (stream, null, RandomBuffer).AsyncWaitHandle.WaitOne ();
+				mre.Set ();
+			}, null);
+		}
+
 		[Test]
-		[Category("TargetJvmNotSupported")] // File locking not supported for TARGET_JVM
+		public void BeginWrite_Recursive ()
+		{
+			string path = TempFolder + Path.DirectorySeparatorChar + "temp";
+			DeleteFile (path);
+	
+			using (FileStream stream = new FileStream (path, FileMode.OpenOrCreate, FileAccess.Write)) {
+				var mre = new ManualResetEvent (false);	
+				var RandomBuffer = new byte[1024];			
+				DoBeginWrite (stream, mre, RandomBuffer);
+				Assert.IsTrue (mre.WaitOne (5000), "#1");
+			}
+		}
+
+		[Test]
 		[ExpectedException (typeof (ObjectDisposedException))]
 		public void Lock_Disposed ()
 		{
@@ -1528,7 +1569,6 @@ namespace MonoTests.System.IO
 		}
 
 		[Test]
-		[Category("TargetJvmNotSupported")] // File locking not supported for TARGET_JVM
 		[ExpectedException (typeof (ObjectDisposedException))]
 		public void Unlock_Disposed ()
 		{
@@ -1591,7 +1631,6 @@ namespace MonoTests.System.IO
 			}
 		}
 
-		[Category("TargetJvmNotSupported")] // FileOptions.DeleteOnClose not supported for TARGET_JVM
 		[Test]
 		public void DeleteOnClose ()
 		{

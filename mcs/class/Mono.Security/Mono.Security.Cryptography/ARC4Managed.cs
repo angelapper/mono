@@ -34,7 +34,10 @@ namespace Mono.Security.Cryptography {
 	// a.	Usenet 1994 - RC4 Algorithm revealed
 	//	http://www.qrst.de/html/dsds/rc4.htm
 
-	public class ARC4Managed : RC4, ICryptoTransform {
+#if !INSIDE_CORLIB
+	public
+#endif
+	class ARC4Managed : RC4, ICryptoTransform {
 
 		private byte[] key;
 		private byte[] state;
@@ -151,7 +154,7 @@ namespace Mono.Security.Cryptography {
 				throw new ArgumentOutOfRangeException ("inputCount", "< 0");
 			// ordered to avoid possible integer overflow
 			if (inputOffset > inputBuffer.Length - inputCount)
-				throw new ArgumentException ("inputBuffer", Locale.GetText ("Overflow"));
+				throw new ArgumentException (Locale.GetText ("Overflow"), "inputBuffer");
 		}
 
 		public int TransformBlock (byte[] inputBuffer, int inputOffset, int inputCount, byte[] outputBuffer, int outputOffset) 
@@ -164,7 +167,7 @@ namespace Mono.Security.Cryptography {
 				throw new ArgumentOutOfRangeException ("outputOffset", "< 0");
 			// ordered to avoid possible integer overflow
 			if (outputOffset > outputBuffer.Length - inputCount)
-				throw new ArgumentException ("outputBuffer", Locale.GetText ("Overflow"));
+				throw new ArgumentException (Locale.GetText ("Overflow"), "outputBuffer");
 
 			return InternalTransformBlock (inputBuffer, inputOffset, inputCount, outputBuffer, outputOffset);
 		}

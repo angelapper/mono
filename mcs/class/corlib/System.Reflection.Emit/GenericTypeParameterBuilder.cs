@@ -42,7 +42,8 @@ namespace System.Reflection.Emit
 {
 	[ComVisible (true)]
 	[StructLayout (LayoutKind.Sequential)]
-	public sealed class GenericTypeParameterBuilder : Type
+	public sealed class GenericTypeParameterBuilder : 
+		TypeInfo
 	{
 	#region Sync with reflection.h
 		private TypeBuilder tbuilder;
@@ -101,11 +102,7 @@ namespace System.Reflection.Emit
 
 		protected override TypeAttributes GetAttributeFlagsImpl ()
 		{
-#if NET_4_0
 			return TypeAttributes.Public;
-#else
-			throw not_supported ();
-#endif
 		}
 
 		protected override ConstructorInfo GetConstructorImpl (BindingFlags bindingAttr,
@@ -212,6 +209,14 @@ namespace System.Reflection.Emit
 		public override bool IsAssignableFrom (Type c)
 		{
 			throw not_supported ();
+		}
+
+		public override bool IsAssignableFrom (TypeInfo typeInfo)
+		{
+			if (typeInfo == null)
+				return false;
+
+			return IsAssignableFrom (typeInfo.AsType ());
 		}
 
 		public override bool IsInstanceOfType (object o)
@@ -439,10 +444,9 @@ namespace System.Reflection.Emit
 			return new ByRefType (this);
 		}
 
-		[MonoTODO]
-		public override Type MakeGenericType (params Type [] typeArguments)
+		public override Type MakeGenericType (params Type[] typeArguments)
 		{
-			return base.MakeGenericType (typeArguments);
+			throw new InvalidOperationException (Environment.GetResourceString ("Arg_NotGenericTypeDefinition"));
 		}
 
 		public override Type MakePointerType ()

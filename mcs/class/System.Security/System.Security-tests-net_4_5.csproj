@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{5AF47E2F-C295-4410-BB78-F08FE99C0E76}</ProjectGuid>
+    <ProjectGuid>{D49E3075-7A78-4CF1-8300-DF847C9B6796}</ProjectGuid>
     <OutputType>Library</OutputType>
     <NoWarn>1699,618,414,169,219,1595,168,183,414</NoWarn>
     <OutputPath>bin\Debug\System.Security-tests-net_4_5</OutputPath>
@@ -114,30 +114,33 @@
     <PreBuildEvent>
 
     </PreBuildEvent>
-    <PostBuildEvent>
-      xcopy $(TargetName).* $(ProjectDir)..\lib\net_4_5\ /Y /R /D
-  </PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">
+
+    </PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">
+
+    </PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="..\lib\net_4_5\nunit.framework.dll" />
     <ProjectReference Include="..\corlib\corlib-net_4_5.csproj">
-      <Project>{05A7A0C2-6946-4CF5-9ED3-44AB0B428C4E}</Project>
+      <Project>{33BF0182-AC5C-464C-995B-C9CFE74E1A95}</Project>
       <Name>corlib\corlib-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\System.Security\System.Security-net_4_5.csproj">
-      <Project>{70AD32F9-8D9F-4EFB-A6DB-254203565D0A}</Project>
+      <Project>{B55E59B2-31CA-438B-ADB8-4B9A9A547830}</Project>
       <Name>System.Security\System.Security-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\System\System-net_4_5-1.csproj">
-      <Project>{B53B8417-E392-4660-86F0-54E7B7FAD4BA}</Project>
+      <Project>{6822DF7D-F859-4F02-9946-F138AA756A0E}</Project>
       <Name>System\System-net_4_5-1</Name>
     </ProjectReference>
     <ProjectReference Include="..\System.XML\System.Xml-net_4_5.csproj">
-      <Project>{9E7D0EEC-475C-4829-8A0D-74FBB76D25E6}</Project>
+      <Project>{2951DEC2-4393-4A78-83F9-42EB39CB708F}</Project>
       <Name>System.XML\System.Xml-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\Mono.Security\Mono.Security-net_4_5.csproj">
-      <Project>{0594F40C-A4D6-4FDD-8876-AF3824DEFDED}</Project>
+      <Project>{D68D4FED-CA32-4800-A628-58BAE485562C}</Project>
       <Name>Mono.Security\Mono.Security-net_4_5</Name>
     </ProjectReference>
   </ItemGroup>
@@ -145,3 +148,4 @@
     <Folder Include="Properties\" />
   </ItemGroup>
 </Project>
+

@@ -16,7 +16,11 @@
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
+#include <mono/utils/mono-memory-model.h>
+
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
+#endif
 
 #include "mono-mutex.h"
 
@@ -25,6 +29,7 @@
 #if defined(__APPLE__)
 #define _DARWIN_C_SOURCE
 #include <pthread_spis.h>
+#include <dlfcn.h>
 #endif
 
 #ifndef HAVE_PTHREAD_MUTEX_TIMEDLOCK
@@ -131,10 +136,18 @@ mono_mutex_init_suspend_safe (mono_mutex_t *mutex)
 #if defined(__APPLE__)
 	int res;
 	pthread_mutexattr_t attr;
+	static gboolean inited;
+	static int (*setpolicy_np) (pthread_mutexattr_t *, int);
+
+	if (!inited) {
+		setpolicy_np = (int (*) (pthread_mutexattr_t *, int)) dlsym (RTLD_NEXT, "pthread_mutexattr_setpolicy_np");
+		mono_atomic_store_release (&inited, TRUE);
+	}
 
 	pthread_mutexattr_init (&attr);
 	pthread_mutexattr_settype (&attr, PTHREAD_MUTEX_RECURSIVE);
-	pthread_mutexattr_setpolicy_np (&attr, _PTHREAD_MUTEX_POLICY_FIRSTFIT);
+	if (setpolicy_np)
+		setpolicy_np (&attr, _PTHREAD_MUTEX_POLICY_FIRSTFIT);
 	res = pthread_mutex_init (mutex, &attr);
 	pthread_mutexattr_destroy (&attr);
 
@@ -143,3 +156,31 @@ mono_mutex_init_suspend_safe (mono_mutex_t *mutex)
 	return mono_mutex_init (mutex);
 #endif
 }
+
+#ifndef HOST_WIN32
+int
+mono_cond_timedwait_ms (mono_cond_t *cond, mono_mutex_t *mutex, int timeout_ms)
+{
+	struct timeval tv;
+	struct timespec ts;
+	gint64 usecs;
+	int res;
+
+	/* ms = 10^-3, us = 10^-6, ns = 10^-9 */
+
+	gettimeofday (&tv, NULL);
+	tv.tv_sec += timeout_ms / 1000;
+	usecs = tv.tv_usec + ((timeout_ms % 1000) * 1000);
+	if (usecs >= 1000000) {
+		usecs -= 1000000;
+		tv.tv_sec ++;
+	}
+	ts.tv_sec = tv.tv_sec;
+	ts.tv_nsec = usecs * 1000;
+
+	res = pthread_cond_timedwait (cond, mutex, &ts);
+	g_assert (res != EINVAL);
+	return res;
+}
+
+#endif

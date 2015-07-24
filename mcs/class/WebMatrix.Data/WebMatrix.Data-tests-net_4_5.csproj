@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{57596539-1B39-4CF2-9586-383EF5AB45DB}</ProjectGuid>
+    <ProjectGuid>{22F06C6F-29E9-48BE-AF9B-066C5607C8F7}</ProjectGuid>
     <OutputType>Library</OutputType>
     <NoWarn>1699</NoWarn>
     <OutputPath>bin\Debug\WebMatrix.Data-tests-net_4_5</OutputPath>
@@ -59,38 +59,41 @@
     <PreBuildEvent>
 
     </PreBuildEvent>
-    <PostBuildEvent>
-      xcopy $(TargetName).* $(ProjectDir)..\lib\net_4_5\ /Y /R /D
-  </PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">
+
+    </PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">
+
+    </PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="..\lib\net_4_5\nunit.framework.dll" />
     <ProjectReference Include="..\corlib\corlib-net_4_5.csproj">
-      <Project>{05A7A0C2-6946-4CF5-9ED3-44AB0B428C4E}</Project>
+      <Project>{33BF0182-AC5C-464C-995B-C9CFE74E1A95}</Project>
       <Name>corlib\corlib-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\WebMatrix.Data\WebMatrix.Data-net_4_5.csproj">
-      <Project>{37C82B59-9992-4A8F-AC90-C2D77D3BDF8F}</Project>
+      <Project>{9732089B-32BB-43FC-BB72-3EE9BBBE796A}</Project>
       <Name>WebMatrix.Data\WebMatrix.Data-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\System\System-net_4_5-2.csproj">
-      <Project>{34966210-D64D-419C-94A4-9A6093CE5882}</Project>
+      <Project>{5C605B73-19DA-4FB7-AB39-C7EF9A8B19FE}</Project>
       <Name>System\System-net_4_5-2</Name>
     </ProjectReference>
     <ProjectReference Include="..\System.Core\System.Core-net_4_5.csproj">
-      <Project>{E77D8877-AEAD-4FDF-8A44-36AAA0B20653}</Project>
+      <Project>{D92530F4-3F2B-4351-BD21-9D6BEE6D2A4E}</Project>
       <Name>System.Core\System.Core-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\System.Data\System.Data-net_4_5.csproj">
-      <Project>{5CAB0F19-4A6F-4B4B-96DA-5677F88E2EF6}</Project>
+      <Project>{9A33954F-57A8-4D75-B1D8-0F81808A0DD4}</Project>
       <Name>System.Data\System.Data-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\Mono.Data.Sqlite\Mono.Data.Sqlite-net_4_5.csproj">
-      <Project>{14095E63-DAB5-4DCD-A8A5-4C9E8CEBAC80}</Project>
+      <Project>{41476FBD-C1CB-4B3C-8078-3281EB1E0EAB}</Project>
       <Name>Mono.Data.Sqlite\Mono.Data.Sqlite-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\Microsoft.CSharp\Microsoft.CSharp-net_4_5.csproj">
-      <Project>{94E8FEFF-9695-4F77-A8AB-85370336FE0D}</Project>
+      <Project>{D554618C-5D38-413A-82BA-7A70B6FC61A3}</Project>
       <Name>Microsoft.CSharp\Microsoft.CSharp-net_4_5</Name>
     </ProjectReference>
   </ItemGroup>
@@ -98,3 +101,4 @@
     <Folder Include="Properties\" />
   </ItemGroup>
 </Project>
+

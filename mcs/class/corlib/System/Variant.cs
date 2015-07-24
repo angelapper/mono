@@ -168,7 +168,7 @@ namespace System
 				vt = (short)VarEnum.VT_BSTR;
 				bstrVal = Marshal.StringToBSTR(((BStrWrapper)obj).WrappedObject);
 			}
-#if !FULL_AOT_RUNTIME
+#if FEATURE_COMINTEROP
 			else if (t == typeof (UnknownWrapper))
 			{
 				vt = (short)VarEnum.VT_UNKNOWN;
@@ -182,7 +182,7 @@ namespace System
 #endif
 			else
 			{
-#if FULL_AOT_RUNTIME
+#if !FEATURE_COMINTEROP
 				throw new NotImplementedException(string.Format("Variant couldn't handle object of type {0}", obj.GetType()));
 #else
 				try 
@@ -203,6 +203,62 @@ namespace System
 				}
 #endif
 			}
+		}
+
+		public static object GetValueAt(int vt, IntPtr addr)
+		{
+			object obj = null;
+			switch ((VarEnum)vt)
+			{
+			case VarEnum.VT_I1:
+				obj = (sbyte)Marshal.ReadByte(addr);
+				break;
+			case VarEnum.VT_UI1:
+				obj = Marshal.ReadByte(addr);
+				break;
+			case VarEnum.VT_I2:
+				obj = Marshal.ReadInt16(addr);
+				break;
+			case VarEnum.VT_UI2:
+				obj = (ushort)Marshal.ReadInt16(addr);
+				break;
+			case VarEnum.VT_I4:
+				obj = Marshal.ReadInt32(addr);
+				break;
+			case VarEnum.VT_UI4:
+				obj = (uint)Marshal.ReadInt32(addr);
+				break;
+			case VarEnum.VT_I8:
+				obj = Marshal.ReadInt64(addr);
+				break;
+			case VarEnum.VT_UI8:
+				obj = (ulong)Marshal.ReadInt64(addr);
+				break;
+			case VarEnum.VT_R4:
+				obj = Marshal.PtrToStructure(addr, typeof(float));
+				break;
+			case VarEnum.VT_R8:
+				obj = Marshal.PtrToStructure(addr, typeof(double));
+				break;
+			case VarEnum.VT_BOOL:
+				obj = !(Marshal.ReadInt16(addr) == 0);
+				break;
+			case VarEnum.VT_BSTR:
+				obj = Marshal.PtrToStringBSTR(Marshal.ReadIntPtr(addr));
+				break;
+// GetObjectForIUnknown is excluded from Marshal using FULL_AOT_RUNTIME
+#if !DISABLE_COM
+			case VarEnum.VT_UNKNOWN:
+			case VarEnum.VT_DISPATCH:
+			{
+				IntPtr ifaceaddr = Marshal.ReadIntPtr(addr);
+				if (ifaceaddr != IntPtr.Zero)
+					obj = Marshal.GetObjectForIUnknown(ifaceaddr);
+				break;
+			}
+#endif
+			}
+			return obj;
 		}
 
 		public object GetValue() {
@@ -245,13 +301,20 @@ namespace System
 			case VarEnum.VT_BSTR:
 				obj = Marshal.PtrToStringBSTR(bstrVal);
 				break;
-#if !FULL_AOT_RUNTIME
+#if FEATURE_COMINTEROP
 			case VarEnum.VT_UNKNOWN:
 			case VarEnum.VT_DISPATCH:
 				if (pdispVal != IntPtr.Zero)
 					obj = Marshal.GetObjectForIUnknown(pdispVal);
 				break;
 #endif
+			default:
+				if (((VarEnum)vt & VarEnum.VT_BYREF) == VarEnum.VT_BYREF &&
+					pdispVal != IntPtr.Zero)
+				{
+					obj = GetValueAt(vt & ~(short)VarEnum.VT_BYREF, pdispVal);
+				}
+				break;
 			}
 			return obj;
 		}
@@ -261,10 +324,12 @@ namespace System
 			if ((VarEnum)vt == VarEnum.VT_BSTR) {
 				Marshal.FreeBSTR (bstrVal);
 			}
+#if !DISABLE_COM
 			else if ((VarEnum)vt == VarEnum.VT_DISPATCH || (VarEnum)vt == VarEnum.VT_UNKNOWN) {
 				if (pdispVal != IntPtr.Zero)
 					Marshal.Release (pdispVal);
 			}
+#endif
 		}
 	}
 

@@ -88,18 +88,34 @@ namespace MonoTests.System.Runtime.CompilerServices
 			}
 		}
 
+		[Category ("NotWorking")] // Bug #18629
 		[Test]
-		public void GetResultNotCompleted ()
+		public void GetResultAfterMultipleExceptions ()
 		{
-			TaskAwaiter<int> awaiter;
-
-			task = new Task<int> (() => 1);
-			awaiter = task.GetAwaiter ();
-
+			TaskAwaiter<object> awaiter;
+			CreateFaultedAwaiter (out awaiter);
 			try {
 				awaiter.GetResult ();
 				Assert.Fail ();
-			} catch (InvalidOperationException) {
+			} catch (AggregateException ae) {
+				Assert.IsFalse (ae.StackTrace.Contains ("--- End"), "#1");
+				Assert.IsTrue (ae.StackTrace.Contains ("CreateFaultedAwaiter"), "#2");
+			}
+		}
+
+		static void CreateFaultedAwaiter (out TaskAwaiter<object> awaiter)
+		{
+			var faultedSource = new TaskCompletionSource<object>();
+			faultedSource.SetException(new Exception());
+			awaiter = faultedSource.Task.GetAwaiter ();
+			try {
+				awaiter.GetResult ();
+			} catch {
+			}
+
+			try {
+				awaiter.GetResult ();
+			} catch {
 			}
 		}
 

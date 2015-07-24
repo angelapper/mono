@@ -14,20 +14,49 @@ typedef union {
 	unsigned char cval [8];
 } mono_rdouble;
 
-#ifdef ARM_FPU_FPA
-#define MONO_DOUBLE_ASSERT_ENDIANITY(dbl_ptr) \
-	do { \
-		mono_rdouble r;	\
-		r.fval = *dbl_ptr;	\
-		r.ival = (guint64) *((guint32 *) r.cval) << 32 |	\
-				*((guint32 *) (r.cval + 4));	\
-		*dbl_ptr = r.fval;	\
-	} while (0)
-#else
-#define MONO_DOUBLE_ASSERT_ENDIANITY(dbl_ptr)
-#endif
+#if defined(__s390x__)
 
-#if NO_UNALIGNED_ACCESS
+#define read16(x)	s390x_read16(*(guint16 *)(x))
+#define read32(x)	s390x_read32(*(guint32 *)(x))
+#define read64(x)	s390x_read64(*(guint64 *)(x))
+
+static __inline__ guint16
+s390x_read16(guint16 x)
+{
+	guint16 ret;
+
+	__asm__ ("	lrvr	%0,%1\n"
+		 "	sra	%0,16\n"
+		 : "=r" (ret) : "r" (x));
+
+	return(ret);
+}
+
+static __inline__ guint32
+s390x_read32(guint32 x)
+{
+	guint32 ret;
+
+	__asm__ ("	lrvr	%0,%1\n"
+		 : "=r" (ret) : "r" (x));
+
+	return(ret);
+}
+
+static __inline__ guint64
+s390x_read64(guint64 x)
+{
+	guint64 ret;
+
+	__asm__ ("	lrvgr	%0,%1\n"
+		 : "=r" (ret) : "r" (x));
+
+	return(ret);
+}
+
+#else
+
+# if NO_UNALIGNED_ACCESS
 
 guint16 mono_read16 (const unsigned char *x);
 guint32 mono_read32 (const unsigned char *x);
@@ -37,11 +66,13 @@ guint64 mono_read64 (const unsigned char *x);
 #define read32(x) (mono_read32 ((const unsigned char *)(x)))
 #define read64(x) (mono_read64 ((const unsigned char *)(x)))
 
-#else
+# else
 
 #define read16(x) GUINT16_FROM_LE (*((const guint16 *) (x)))
 #define read32(x) GUINT32_FROM_LE (*((const guint32 *) (x)))
 #define read64(x) GUINT64_FROM_LE (*((const guint64 *) (x)))
+
+# endif
 
 #endif
 
@@ -56,7 +87,6 @@ guint64 mono_read64 (const unsigned char *x);
 	do {	\
 		mono_rdouble mf;	\
 		mf.ival = read64 ((x));	\
-		MONO_DOUBLE_ASSERT_ENDIANITY (&mf.fval);	\
 		*(dest) = mf.fval;	\
 	} while (0)
 

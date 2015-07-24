@@ -18,7 +18,6 @@
 #include <unistd.h>
 
 #ifndef __linux__
-#include <sys/systeminfo.h>
 #include <thread.h>
 #endif
 
@@ -29,6 +28,7 @@
 #include <mono/metadata/debug-helpers.h>
 #include <mono/metadata/tokentype.h>
 #include <mono/utils/mono-math.h>
+#include <mono/utils/mono-hwcap-sparc.h>
 
 #include "mini-sparc.h"
 #include "trace.h"
@@ -150,9 +150,6 @@
 
 #endif
 
-/* Whenever the CPU supports v9 instructions */
-static gboolean sparcv9 = FALSE;
-
 /* Whenever this is a 64bit executable */
 #if SPARCV9
 static gboolean v64 = TRUE;
@@ -202,9 +199,6 @@ mono_arch_fregname (int reg) {
 void
 mono_arch_cpu_init (void)
 {
-	guint32 dummy;
-	/* make sure sparcv9 is initialized for embedded use */
-	mono_arch_cpu_optimizations(&dummy);
 }
 
 /*
@@ -229,35 +223,16 @@ mono_arch_cleanup (void)
 guint32
 mono_arch_cpu_optimizations (guint32 *exclude_mask)
 {
-	char buf [1024];
 	guint32 opts = 0;
 
 	*exclude_mask = 0;
 
-#ifndef __linux__
-	if (!sysinfo (SI_ISALIST, buf, 1024))
-		g_assert_not_reached ();
-#else
-	/* From glibc.  If the getpagesize is 8192, we're on sparc64, which
-	 * (in)directly implies that we're a v9 or better.
-	 * Improvements to this are greatly accepted...
-	 * Also, we don't differentiate between v7 and v8.  I sense SIGILL
-	 * sniffing in my future.  
-	 */
-	if (getpagesize() == 8192)
-		strcpy (buf, "sparcv9");
-	else
-		strcpy (buf, "sparcv8");
-#endif
-
-	/* 
+	/*
 	 * On some processors, the cmov instructions are even slower than the
 	 * normal ones...
 	 */
-	if (strstr (buf, "sparcv9")) {
+	if (mono_hwcap_sparc_is_v9)
 		opts |= MONO_OPT_CMOV | MONO_OPT_FCMOV;
-		sparcv9 = TRUE;
-	}
 	else
 		*exclude_mask |= MONO_OPT_CMOV | MONO_OPT_FCMOV;
 
@@ -306,7 +281,7 @@ mono_arch_flush_icache (guint8 *code, gint size)
 	 *
 	 * Sparcv8 needs a flush every 8 bytes.
 	 */
-	align = (sparcv9 ? 32 : 8);
+	align = (mono_hwcap_sparc_is_v9 ? 32 : 8);
 
 	start &= ~(align - 1);
 	end = (end + (align - 1)) & ~(align - 1);
@@ -370,7 +345,7 @@ mono_arch_is_inst_imm (gint64 imm)
 
 gboolean 
 mono_sparc_is_v9 (void) {
-	return sparcv9;
+	return mono_hwcap_sparc_is_v9;
 }
 
 gboolean 
@@ -505,7 +480,6 @@ get_call_info (MonoCompile *cfg, MonoMethodSignature *sig, gboolean is_pinvoke)
 	guint32 stack_size = 0;
 	CallInfo *cinfo;
 	MonoType *ret_type;
-	MonoGenericSharingContext *gsctx = cfg ? cfg->generic_sharing_context : NULL;
 
 	cinfo = g_malloc0 (sizeof (CallInfo) + (sizeof (ArgInfo) * n));
 
@@ -551,8 +525,7 @@ get_call_info (MonoCompile *cfg, MonoMethodSignature *sig, gboolean is_pinvoke)
 			add_general (&gr, &stack_size, ainfo, FALSE);
 			continue;
 		}
-		ptype = mono_type_get_underlying_type (sig->params [i]);
-		ptype = mini_get_basic_type_from_generic (gsctx, ptype);
+		ptype = mini_get_underlying_type (sig->params [i]);
 		switch (ptype->type) {
 		case MONO_TYPE_BOOLEAN:
 		case MONO_TYPE_I1:
@@ -640,8 +613,7 @@ get_call_info (MonoCompile *cfg, MonoMethodSignature *sig, gboolean is_pinvoke)
 	}
 
 	/* return value */
-	ret_type = mono_type_get_underlying_type (sig->ret);
-	ret_type = mini_get_basic_type_from_generic (gsctx, ret_type);
+	ret_type = mini_get_underlying_type (sig->ret);
 	switch (ret_type->type) {
 	case MONO_TYPE_BOOLEAN:
 	case MONO_TYPE_I1:
@@ -827,7 +799,7 @@ mono_arch_allocate_vars (MonoCompile *cfg)
 			cfg->ret->inst_c0 = cinfo->ret.reg;
 			break;
 		case ArgInIRegPair: {
-			MonoType *t = mono_type_get_underlying_type (sig->ret);
+			MonoType *t = mini_get_underlying_type (sig->ret);
 			if (((t->type == MONO_TYPE_I8) || (t->type == MONO_TYPE_U8))) {
 				MonoInst *low = get_vreg_to_inst (cfg, cfg->ret->dreg + 1);
 				MonoInst *high = get_vreg_to_inst (cfg, cfg->ret->dreg + 2);
@@ -896,7 +868,7 @@ mono_arch_allocate_vars (MonoCompile *cfg)
 		if (inst->backend.is_pinvoke && MONO_TYPE_ISSTRUCT (inst->inst_vtype) && inst->inst_vtype->type != MONO_TYPE_TYPEDBYREF)
 			size = mono_class_native_size (mono_class_from_mono_type (inst->inst_vtype), &align);
 		else
-			size = mini_type_stack_size (cfg->generic_sharing_context, inst->inst_vtype, &align);
+			size = mini_type_stack_size (inst->inst_vtype, &align);
 
 		/* 
 		 * This is needed since structures containing doubles must be doubleword 
@@ -1329,7 +1301,7 @@ mono_arch_emit_call (MonoCompile *cfg, MonoCallInst *call)
 		else
 			arg_type = sig->params [i - sig->hasthis];
 
-		arg_type = mono_type_get_underlying_type (arg_type);
+		arg_type = mini_get_underlying_type (arg_type);
 		if ((i >= sig->hasthis) && (MONO_TYPE_ISSTRUCT(sig->params [i - sig->hasthis])))
 			emit_pass_vtype (cfg, call, cinfo, ainfo, arg_type, in, sig->pinvoke);
 		else if (!arg_type->byref && ((arg_type->type == MONO_TYPE_I8) || (arg_type->type == MONO_TYPE_U8)))
@@ -1365,7 +1337,7 @@ void
 mono_arch_emit_setret (MonoCompile *cfg, MonoMethod *method, MonoInst *val)
 {
 	CallInfo *cinfo = get_call_info (cfg, mono_method_signature (method), FALSE);
-	MonoType *ret = mini_type_get_underlying_type (cfg->generic_sharing_context, mono_method_signature (method)->ret);
+	MonoType *ret = mini_get_underlying_type (mono_method_signature (method)->ret);
 
 	switch (cinfo->ret.storage) {
 	case ArgInIReg:
@@ -1510,7 +1482,7 @@ else { \
 #define EMIT_COND_SYSTEM_EXCEPTION_GENERAL(ins,cond,sexc_name,filldelay,icc) do {     \
 		mono_add_patch_info (cfg, (guint8*)(code) - (cfg)->native_code,   \
 				    MONO_PATCH_INFO_EXC, sexc_name);  \
-        if (sparcv9 && ((icc) != sparc_icc_short)) {          \
+        if (mono_hwcap_sparc_is_v9 && ((icc) != sparc_icc_short)) {          \
            sparc_branchp (code, 0, (cond), (icc), 0, 0); \
         } \
         else { \
@@ -1741,7 +1713,7 @@ mono_arch_peephole_pass_2 (MonoCompile *cfg, MonoBasicBlock *bb)
 				((ins->inst_offset == last_ins->inst_offset - 4)) &&
 				(ins->inst_imm == 0) &&
 				(last_ins->inst_imm == 0)) {
-				if (sparcv9) {
+				if (mono_hwcap_sparc_is_v9) {
 					last_ins->opcode = OP_STOREI8_MEMBASE_IMM;
 					last_ins->inst_offset = ins->inst_offset;
 					MONO_DELETE_INS (bb, ins);
@@ -2039,7 +2011,7 @@ emit_save_sp_to_lmf (MonoCompile *cfg, guint32 *code)
 }
 
 static guint32*
-emit_vret_token (MonoGenericSharingContext *gsctx, MonoInst *ins, guint32 *code)
+emit_vret_token (MonoInst *ins, guint32 *code)
 {
 	MonoCallInst *call = (MonoCallInst*)ins;
 	guint32 size;
@@ -2050,7 +2022,7 @@ emit_vret_token (MonoGenericSharingContext *gsctx, MonoInst *ins, guint32 *code)
 	 */
 	if (call->signature->pinvoke && MONO_TYPE_ISSTRUCT(call->signature->ret)) {
 		if (call->signature->ret->type == MONO_TYPE_TYPEDBYREF)
-			size = mini_type_stack_size (gsctx, call->signature->ret, NULL);
+			size = mini_type_stack_size (call->signature->ret, NULL);
 		else
 			size = mono_class_native_size (call->signature->ret->data.klass, NULL);
 		sparc_unimp (code, size & 0xfff);
@@ -2917,7 +2889,7 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 			else
 			    code = emit_call (cfg, code, MONO_PATCH_INFO_ABS, call->fptr);
 
-			code = emit_vret_token (cfg->generic_sharing_context, ins, code);
+			code = emit_vret_token (ins, code);
 			code = emit_move_return_value (ins, code);
 			break;
 		case OP_FCALL_REG:
@@ -2939,7 +2911,7 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 			else
 				sparc_nop (code);
 
-			code = emit_vret_token (cfg->generic_sharing_context, ins, code);
+			code = emit_vret_token (ins, code);
 			code = emit_move_return_value (ins, code);
 			break;
 		case OP_FCALL_MEMBASE:
@@ -2962,7 +2934,7 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 			else
 				sparc_nop (code);
 
-			code = emit_vret_token (cfg->generic_sharing_context, ins, code);
+			code = emit_vret_token (ins, code);
 			code = emit_move_return_value (ins, code);
 			break;
 		case OP_SETFRET:
@@ -3020,10 +2992,10 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 				sparc_branch (code, 0, sparc_be, 0);
 				/* delay slot */
 				sparc_set (code, 0, sparc_o7);
-				sparc_sub_imm (code, 0, size_reg, sparcv9 ? 8 : 4, size_reg);
+				sparc_sub_imm (code, 0, size_reg, mono_hwcap_sparc_is_v9 ? 8 : 4, size_reg);
 				/* start of loop */
 				br [1] = code;
-				if (sparcv9)
+				if (mono_hwcap_sparc_is_v9)
 					sparc_stx (code, sparc_g0, ins->dreg, sparc_o7);
 				else
 					sparc_st (code, sparc_g0, ins->dreg, sparc_o7);
@@ -3032,7 +3004,7 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 				sparc_branch (code, 0, sparc_bl, 0);
 				sparc_patch (br [2], br [1]);
 				/* delay slot */
-				sparc_add_imm (code, 0, sparc_o7, sparcv9 ? 8 : 4, sparc_o7);
+				sparc_add_imm (code, 0, sparc_o7, mono_hwcap_sparc_is_v9 ? 8 : 4, sparc_o7);
 				sparc_patch (br [0], code);
 			}
 			break;
@@ -3066,7 +3038,7 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 				if (offset <= 16) {
 					i = 0;
 					while (i < offset) {
-						if (sparcv9) {
+						if (mono_hwcap_sparc_is_v9) {
 							sparc_stx_imm (code, sparc_g0, ins->dreg, i);
 							i += 8;
 						}
@@ -3078,10 +3050,10 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 				}
 				else {
 					sparc_set (code, offset, sparc_o7);
-					sparc_sub_imm (code, 0, sparc_o7, sparcv9 ? 8 : 4, sparc_o7);
+					sparc_sub_imm (code, 0, sparc_o7, mono_hwcap_sparc_is_v9 ? 8 : 4, sparc_o7);
 					/* beginning of loop */
 					br [0] = code;
-					if (sparcv9)
+					if (mono_hwcap_sparc_is_v9)
 						sparc_stx (code, sparc_g0, ins->dreg, sparc_o7);
 					else
 						sparc_st (code, sparc_g0, ins->dreg, sparc_o7);
@@ -3089,7 +3061,7 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 					br [1] = code;
 					sparc_branch (code, 0, sparc_bne, 0);
 					/* delay slot */
-					sparc_sub_imm (code, 0, sparc_o7, sparcv9 ? 8 : 4, sparc_o7);
+					sparc_sub_imm (code, 0, sparc_o7, mono_hwcap_sparc_is_v9 ? 8 : 4, sparc_o7);
 					sparc_patch (br [1], br [0]);
 				}
 			}
@@ -3284,7 +3256,7 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 		case OP_IBGE_UN:
 		case OP_IBLE:
 		case OP_IBLE_UN: {
-			if (sparcv9)
+			if (mono_hwcap_sparc_is_v9)
 				EMIT_COND_BRANCH_PREDICTED (ins, opcode_to_sparc_cond (ins->opcode), 1, 1);
 			else
 				EMIT_COND_BRANCH (ins, opcode_to_sparc_cond (ins->opcode), 1, 1);
@@ -3693,7 +3665,7 @@ mono_arch_register_lowlevel_calls (void)
 }
 
 void
-mono_arch_patch_code (MonoMethod *method, MonoDomain *domain, guint8 *code, MonoJumpInfo *ji, MonoCodeManager *dyn_code_mp, gboolean run_cctors)
+mono_arch_patch_code (MonoCompile *cfg, MonoMethod *method, MonoDomain *domain, guint8 *code, MonoJumpInfo *ji, gboolean run_cctors)
 {
 	MonoJumpInfo *patch_info;
 
@@ -3707,17 +3679,6 @@ mono_arch_patch_code (MonoMethod *method, MonoDomain *domain, guint8 *code, Mono
 		switch (patch_info->type) {
 		case MONO_PATCH_INFO_NONE:
 			continue;
-		case MONO_PATCH_INFO_CLASS_INIT: {
-			guint32 *ip2 = (guint32*)ip;
-			/* Might already been changed to a nop */
-#ifdef SPARCV9
-			sparc_set_template (ip2, sparc_o7);
-			sparc_jmpl (ip2, sparc_o7, sparc_g0, sparc_o7);
-#else
-			sparc_call_simple (ip2, 0);
-#endif
-			break;
-		}
 		case MONO_PATCH_INFO_METHOD_JUMP: {
 			guint32 *ip2 = (guint32*)ip;
 			/* Might already been patched */
@@ -3807,7 +3768,7 @@ mono_arch_instrument_epilog_full (MonoCompile *cfg, void *func, void *p, gboolea
 	int save_mode = SAVE_NONE;
 	MonoMethod *method = cfg->method;
 
-	switch (mono_type_get_underlying_type (mono_method_signature (method)->ret)->type) {
+	switch (mini_get_underlying_type (mono_method_signature (method)->ret)->type) {
 	case MONO_TYPE_VOID:
 		/* special case string .ctor icall */
 		if (strcmp (".ctor", method->name) && method->klass == mono_defaults.string_class)
@@ -4379,7 +4340,7 @@ mono_arch_tls_init (void)
 
 	}
 
-	jit_tls = pthread_getspecific (mono_get_jit_tls_key ());
+	jit_tls = mono_get_jit_tls ();
 
 #ifdef MONO_SPARC_THR_TLS
 	thr_setspecific (lmf_addr_key, &jit_tls->lmf);
@@ -4418,7 +4379,7 @@ mono_arch_emit_inst_for_method (MonoCompile *cfg, MonoMethod *cmethod, MonoMetho
  * Returns the size of the activation frame.
  */
 int
-mono_arch_get_argument_info (MonoGenericSharingContext *gsctx, MonoMethodSignature *csig, int param_count, MonoJitArgumentInfo *arg_info)
+mono_arch_get_argument_info (MonoMethodSignature *csig, int param_count, MonoJitArgumentInfo *arg_info)
 {
 	int k, align;
 	CallInfo *cinfo;
@@ -4449,14 +4410,15 @@ mono_arch_print_tree (MonoInst *tree, int arity)
 	return 0;
 }
 
-MonoInst* mono_arch_get_domain_intrinsic (MonoCompile* cfg)
-{
-	return NULL;
-}
-
 mgreg_t
 mono_arch_context_get_int_reg (MonoContext *ctx, int reg)
 {
 	/* FIXME: implement */
 	g_assert_not_reached ();
+}
+
+gboolean
+mono_arch_opcode_supported (int opcode)
+{
+	return FALSE;
 }

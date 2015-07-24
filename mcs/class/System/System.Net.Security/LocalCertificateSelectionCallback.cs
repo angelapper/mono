@@ -31,9 +31,10 @@
 
 #if SECURITY_DEP
 
+#if !MONOTOUCH && !MONODROID
 extern alias PrebuiltSystem;
-
 using X509CertificateCollection = PrebuiltSystem::System.Security.Cryptography.X509Certificates.X509CertificateCollection;
+#endif
 
 using System.Security.Cryptography.X509Certificates;
 

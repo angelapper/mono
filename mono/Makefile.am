@@ -1,8 +1,12 @@
+if SUPPORT_SGEN
+sgen_dirs = sgen
+endif
+
 if CROSS_COMPILING
-SUBDIRS = arch utils io-layer cil metadata $(interpreter_dir) mini dis profiler
+SUBDIRS = arch utils io-layer cil metadata $(sgen_dirs) mini dis profiler
 else
 if INSTALL_MONOTOUCH
-SUBDIRS = utils io-layer metadata arch mini profiler
+SUBDIRS = utils io-layer metadata arch $(sgen_dirs) mini profiler
 
 monotouch-do-build:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \
@@ -26,34 +30,7 @@ monotouch-do-clean:
 	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$target); \
     done;
 else
-if MOONLIGHT
-SUBDIRS = arch utils io-layer metadata mini
-
-moon-do-build:
-	@list='$(SUBDIRS)'; for subdir in $$list; do \
-	  case "x$$subdir" in \
-		xmetadata ) target="moon-do-build" ;; \
-		xmini ) target="moon-do-build" ;; \
-		* ) target="all" ;; \
-	  esac; \
-	  echo "Making $$target in $$subdir"; \
-	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$target); \
-    done;
-
-moon-do-clean:
-	@list='$(SUBDIRS)'; for subdir in $$list; do \
-	  case "x$$subdir" in \
-		xmetadata ) target="moon-do-clean" ;; \
-		xmini ) target="moon-do-clean" ;; \
-		* ) target="clean" ;; \
-	  esac; \
-	  echo "Making $$target in $$subdir"; \
-	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$target); \
-    done;
-
-else
-SUBDIRS = arch utils io-layer cil metadata $(interpreter_dir) mini dis monograph tests benchmark profiler
+SUBDIRS = arch utils io-layer cil metadata $(sgen_dirs) mini dis tests unit-tests benchmark profiler
 endif
 endif
-endif
-DIST_SUBDIRS = arch utils io-layer cil metadata interpreter mini dis monograph tests benchmark profiler
+DIST_SUBDIRS = arch utils io-layer cil metadata $(sgen_dirs) mini dis tests unit-tests benchmark profiler

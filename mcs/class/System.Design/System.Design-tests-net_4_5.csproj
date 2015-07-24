@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{00CB1FAE-7834-4589-94D0-40166739993E}</ProjectGuid>
+    <ProjectGuid>{AB2530F9-0740-41BF-9276-865F11BCAC7A}</ProjectGuid>
     <OutputType>Library</OutputType>
     <NoWarn>1699</NoWarn>
     <OutputPath>bin\Debug\System.Design-tests-net_4_5</OutputPath>
@@ -67,34 +67,38 @@
     <PreBuildEvent>
 
     </PreBuildEvent>
-    <PostBuildEvent>
-      xcopy $(TargetName).* $(ProjectDir)..\lib\net_4_5\ /Y /R /D
-  </PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">
+
+    </PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">
+
+    </PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="..\lib\net_4_5\nunit.framework.dll" />
     <ProjectReference Include="..\corlib\corlib-net_4_5.csproj">
-      <Project>{05A7A0C2-6946-4CF5-9ED3-44AB0B428C4E}</Project>
+      <Project>{33BF0182-AC5C-464C-995B-C9CFE74E1A95}</Project>
       <Name>corlib\corlib-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\System.Design\System.Design-net_4_5-1.csproj">
-      <Project>{2414C54A-9454-4B25-932C-0724CF003A6D}</Project>
+      <Project>{9A747C88-5D5B-41EA-8435-48EAFCFF3C5B}</Project>
       <Name>System.Design\System.Design-net_4_5-1</Name>
     </ProjectReference>
     <ProjectReference Include="..\System\System-net_4_5-2.csproj">
-      <Project>{34966210-D64D-419C-94A4-9A6093CE5882}</Project>
+      <Project>{5C605B73-19DA-4FB7-AB39-C7EF9A8B19FE}</Project>
       <Name>System\System-net_4_5-2</Name>
     </ProjectReference>
     <ProjectReference Include="..\System.Drawing\System.Drawing-net_4_5.csproj">
-      <Project>{4F2AADB3-6D4D-41C3-AC38-6AC970F97703}</Project>
+      <Project>{CB1CB976-AA54-4553-B0E7-05665B199EC4}</Project>
       <Name>System.Drawing\System.Drawing-net_4_5</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Managed.Windows.Forms\System.Windows.Forms-net_4_5.csproj">
-      <Project>{ABF6A466-1744-4C43-8B68-C89EA10FBB67}</Project>
-      <Name>Managed.Windows.Forms\System.Windows.Forms-net_4_5</Name>
+    <ProjectReference Include="..\System.Windows.Forms\System.Windows.Forms-net_4_5.csproj">
+      <Project>{B102F27C-1A07-487F-BA5B-D5155D201112}</Project>
+      <Name>System.Windows.Forms\System.Windows.Forms-net_4_5</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
   </ItemGroup>
 </Project>
+

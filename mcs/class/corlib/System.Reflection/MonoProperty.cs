@@ -1,13 +1,14 @@
 //
-// System.Reflection/MonoProperty.cs
-// The class used to represent Properties from the mono runtime.
+// MonoProperty.cs: The class used to represent Properties from the mono runtime.
 //
-// Author:
+// Authors:
 //   Paolo Molaro (lupus@ximian.com)
 //   Patrik Torstensson (patrik.torstensson@labs2.com)
+//   Marek Safar (marek.safar@gmail.com)
 //
 // (C) 2001 Ximian, Inc.  http://www.ximian.com
 // Copyright (C) 2004-2005 Novell, Inc (http://www.novell.com)
+// Copyright 2013 Xamarin, Inc (http://www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -35,6 +36,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Security;
+using System.Text;
+using System.Diagnostics.Contracts;
 
 namespace System.Reflection {
 	
@@ -71,9 +74,71 @@ namespace System.Reflection {
 	internal delegate object GetterAdapter (object _this);
 	internal delegate R Getter<T,R> (T _this);
 
+	abstract class RuntimePropertyInfo : PropertyInfo, ISerializable
+	{
+		internal BindingFlags BindingFlags {
+			get {
+				return 0;
+			}
+		}
+
+		RuntimeType ReflectedTypeInternal {
+			get {
+				return (RuntimeType) ReflectedType;
+			}
+		}
+
+        #region Object Overrides
+        public override String ToString()
+        {
+            return FormatNameAndSig(false);
+        }
+
+        private string FormatNameAndSig(bool serialization)
+        {
+            StringBuilder sbName = new StringBuilder(PropertyType.FormatTypeName(serialization));
+
+            sbName.Append(" ");
+            sbName.Append(Name);
+
+			var pi = GetIndexParameters ();
+			if (pi.Length > 0) {
+				sbName.Append (" [");
+				ParameterInfo.FormatParameters (sbName, pi, 0, serialization);
+				sbName.Append ("]");
+			}
+
+            return sbName.ToString();
+        }
+        #endregion		
+
+        #region ISerializable Implementation
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            if (info == null)
+                throw new ArgumentNullException("info");
+            Contract.EndContractBlock();
+
+            MemberInfoSerializationHolder.GetSerializationInfo(
+                info,
+                Name,
+                ReflectedTypeInternal,
+                ToString(),
+                SerializationToString(),
+                MemberTypes.Property,
+                null);
+        }
+
+        internal string SerializationToString()
+        {
+            return FormatNameAndSig(true);
+        }
+        #endregion
+	}
+
 	[Serializable]
 	[StructLayout (LayoutKind.Sequential)]
-	internal class MonoProperty : PropertyInfo, ISerializable {
+	internal class MonoProperty : RuntimePropertyInfo {
 #pragma warning disable 649
 		internal IntPtr klass;
 		internal IntPtr prop;
@@ -177,24 +242,25 @@ namespace System.Reflection {
 				return null;
 		}
 
-		public override ParameterInfo[] GetIndexParameters()
+		public override ParameterInfo[] GetIndexParameters ()
 		{
 			CachePropertyInfo (PInfo.GetMethod | PInfo.SetMethod);
-			ParameterInfo[] res;
+			ParameterInfo[] src;
+			int length;
 			if (info.get_method != null) {
-				res = info.get_method.GetParameters ();
+				src = info.get_method.GetParametersInternal ();
+				length = src.Length;
 			} else if (info.set_method != null) {
-				ParameterInfo[] src = info.set_method.GetParametersInternal ();
-				res = new ParameterInfo [src.Length - 1];
-				Array.Copy (src, res, res.Length);
+				src = info.set_method.GetParametersInternal ();
+				length = src.Length - 1;
 			} else
 				return EmptyArray<ParameterInfo>.Value;
 
-			for (int i = 0; i < res.Length; ++i) {
-				ParameterInfo pinfo = res [i];
-				res [i] = new ParameterInfo (pinfo, this);
+			var dest = new ParameterInfo [length];
+			for (int i = 0; i < length; ++i) {
+				dest [i] = ParameterInfo.New (src [i], this);
 			}
-			return res;	
+			return dest;	
 		}
 		
 		public override MethodInfo GetSetMethod (bool nonPublic)
@@ -296,7 +362,7 @@ namespace System.Reflection {
 		{
 			if (index == null || index.Length == 0) {
 				/*FIXME we should check if the number of arguments matches the expected one, otherwise the error message will be pretty criptic.*/
-#if !MONOTOUCH
+#if !FULL_AOT_RUNTIME
 				if (cached_getter == null) {
 					MethodInfo method = GetGetMethod (true);
 					if (!DeclaringType.IsValueType && !method.ContainsGenericParameters) { //FIXME find a way to build an invoke delegate for value types.
@@ -363,10 +429,6 @@ namespace System.Reflection {
 			method.Invoke (obj, invokeAttr, binder, parms, culture);
 		}
 
-		public override string ToString () {
-			return PropertyType.ToString () + " " + Name;
-		}
-
 		public override Type[] GetOptionalCustomModifiers () {
 			Type[] types = MonoPropertyInfo.GetTypeModifiers (this, true);
 			if (types == null)
@@ -381,17 +443,8 @@ namespace System.Reflection {
 			return types;
 		}
 
-		// ISerializable
-		public void GetObjectData (SerializationInfo info, StreamingContext context) 
-		{
-			MemberInfoSerializationHolder.Serialize (info, Name, ReflectedType,
-				ToString(), MemberTypes.Property);
-		}
-
-#if NET_4_0
 		public override IList<CustomAttributeData> GetCustomAttributesData () {
 			return CustomAttributeData.GetCustomAttributes (this);
 		}
-#endif
 	}
 }

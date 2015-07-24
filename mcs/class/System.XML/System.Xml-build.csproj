@@ -5,10 +5,10 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{A2433930-2BB3-4818-97D2-45A907CB7B3B}</ProjectGuid>
+    <ProjectGuid>{F8FFA803-9D2E-465A-A87D-3F871AD497B6}</ProjectGuid>
     <OutputType>Library</OutputType>
     <NoWarn>1699,618,612,642</NoWarn>
-    <OutputPath>bin\Debug\System.Xml-build</OutputPath>
+    <OutputPath>./../../class/lib/build</OutputPath>
     <NoStdLib>True</NoStdLib>
     <NoConfig>True</NoConfig>
     
@@ -452,17 +452,20 @@ echo #define XSLT_PATTERN > $(ProjectDir)\Mono.Xml.Xsl\PatternTokenizer.cs
 type $(ProjectDir)\System.Xml.XPath\Tokenizer.cs >> $(ProjectDir)\Mono.Xml.Xsl\PatternTokenizer.cs
 
     </PreBuildEvent>
-    <PostBuildEvent>
-      xcopy $(TargetName).* $(ProjectDir)..\lib\build\ /Y /R /D
-  </PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">
+
+    </PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">
+
+    </PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\corlib\corlib-build.csproj">
-      <Project>{B8B2866D-592F-4888-A1CB-697AD0F3CADE}</Project>
+      <Project>{2BDF80D1-6F06-4908-B351-835292B7A9B9}</Project>
       <Name>corlib\corlib-build</Name>
     </ProjectReference>
     <ProjectReference Include="..\System\System-build.csproj">
-      <Project>{4C8FFAF4-4FE9-4377-821B-AFD255791495}</Project>
+      <Project>{78CDD7C1-0524-4A2A-BAA6-2A05CCD7116C}</Project>
       <Name>System\System-build</Name>
     </ProjectReference>
   </ItemGroup>
@@ -470,3 +473,4 @@ type $(ProjectDir)\System.Xml.XPath\Tokenizer.cs >> $(ProjectDir)\Mono.Xml.Xsl\P
     <Folder Include="Properties\" />
   </ItemGroup>
 </Project>
+

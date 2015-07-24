@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{7FC476D7-BD8A-4AB5-969E-58A8D56D063C}</ProjectGuid>
+    <ProjectGuid>{5CFB4B4E-2DD9-4033-ADEC-D6E26A357B78}</ProjectGuid>
     <OutputType>Library</OutputType>
     <NoWarn>1699,618,612,642,618,219,169</NoWarn>
     <OutputPath>bin\Debug\System.Xml-tests-net_4_5</OutputPath>
@@ -49,6 +49,7 @@
     <Compile Include="Test\System.Xml.Schema\XmlSchemaCollectionTests.cs" />
     <Compile Include="Test\System.Xml.Schema\XmlSchemaDatatypeTests.cs" />
     <Compile Include="Test\System.Xml.Schema\XmlSchemaExceptionCas.cs" />
+    <Compile Include="Test\System.Xml.Schema\XmlSchemaExceptionTests.cs" />
     <Compile Include="Test\System.Xml.Schema\XmlSchemaLengthFacetTests.cs" />
     <Compile Include="Test\System.Xml.Schema\XmlSchemaSetTests.cs" />
     <Compile Include="Test\System.Xml.Schema\XmlSchemaTests.cs" />
@@ -177,30 +178,33 @@ echo #define XSLT_PATTERN > $(ProjectDir)\Mono.Xml.Xsl\PatternTokenizer.cs
 type $(ProjectDir)\System.Xml.XPath\Tokenizer.cs >> $(ProjectDir)\Mono.Xml.Xsl\PatternTokenizer.cs
 
     </PreBuildEvent>
-    <PostBuildEvent>
-      xcopy $(TargetName).* $(ProjectDir)..\lib\net_4_5\ /Y /R /D
-  </PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">
+
+    </PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">
+
+    </PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="..\lib\net_4_5\nunit.framework.dll" />
     <ProjectReference Include="..\corlib\corlib-net_4_5.csproj">
-      <Project>{05A7A0C2-6946-4CF5-9ED3-44AB0B428C4E}</Project>
+      <Project>{33BF0182-AC5C-464C-995B-C9CFE74E1A95}</Project>
       <Name>corlib\corlib-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\System.XML\System.Xml-net_4_5-1.csproj">
-      <Project>{6374B2FC-93C6-4FD0-8CF0-8EB12F5AC71D}</Project>
+      <Project>{2534ADE0-05E4-490F-933D-1E39310A0CB9}</Project>
       <Name>System.XML\System.Xml-net_4_5-1</Name>
     </ProjectReference>
     <ProjectReference Include="..\System\System-net_4_5-2.csproj">
-      <Project>{34966210-D64D-419C-94A4-9A6093CE5882}</Project>
+      <Project>{5C605B73-19DA-4FB7-AB39-C7EF9A8B19FE}</Project>
       <Name>System\System-net_4_5-2</Name>
     </ProjectReference>
     <ProjectReference Include="..\System.Data\System.Data-net_4_0.csproj">
-      <Project>{6865A6A5-DF93-45C7-BE83-F06907EC81F8}</Project>
+      <Project>{0ADBE502-5524-4312-81B0-8456328C367C}</Project>
       <Name>System.Data\System.Data-net_4_0</Name>
     </ProjectReference>
     <ProjectReference Include="..\System.Core\System.Core-net_4_5.csproj">
-      <Project>{E77D8877-AEAD-4FDF-8A44-36AAA0B20653}</Project>
+      <Project>{D92530F4-3F2B-4351-BD21-9D6BEE6D2A4E}</Project>
       <Name>System.Core\System.Core-net_4_5</Name>
     </ProjectReference>
   </ItemGroup>
@@ -208,3 +212,4 @@ type $(ProjectDir)\System.Xml.XPath\Tokenizer.cs >> $(ProjectDir)\Mono.Xml.Xsl\P
     <Folder Include="Properties\" />
   </ItemGroup>
 </Project>
+

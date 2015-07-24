@@ -7,37 +7,44 @@ RESOURCE_FILES = \
 	resources/ws-addr.xsd
 
 LIBRARY = System.ServiceModel.dll
+
+LIB_REFS = System System.Xml System.Core System.Runtime.Serialization
 LIB_MCS_FLAGS = \
 		/nowarn:414,169,67,3005,436,219,618 \
 		/unsafe \
 		/d:TRACE \
-	        /r:System.dll \
-	        /r:System.Xml.dll \
-		/r:System.Core.dll \
-	        /r:System.Runtime.Serialization.dll \
 		$(RESOURCE_FILES:%=/resource:%)
 
-ifneq (2.1, $(FRAMEWORK_VERSION))
-LIB_MCS_FLAGS += /d:NET_3_0 	\
-			/r:System.Configuration.dll \
-			/r:System.Data.dll	\
-			/r:System.Security.dll \
-			/r:System.IdentityModel.dll \
-			/r:System.IdentityModel.Selectors.dll \
-			/r:System.Transactions.dll \
-			/r:System.Messaging.dll \
-			/r:System.Web.dll \
-			/r:System.Web.Services.dll \
-			/r:Mono.Security.dll
+ifdef XAMMAC_4_5
+LIB_REFS += System.ServiceModel.Internals
 endif
 
-ifeq (moonlight_raw, $(PROFILE))
-LIB_MCS_FLAGS += /r:System.Net
+ifneq (2.1, $(FRAMEWORK_VERSION))
+LIB_REFS += System.Configuration System.Data System.Security System.IdentityModel System.IdentityModel.Selectors System.Transactions System.Messaging System.Web.Services Mono.Security
+LIB_MCS_FLAGS += /d:NET_3_0
+
+ifndef NO_SYSTEM_WEB_DEPENDENCY
+LIB_REFS += System.Web
 endif
 
 ifeq (4, $(FRAMEWORK_VERSION_MAJOR))
-LIB_MCS_FLAGS += /r:System.Web.ApplicationServices.dll
+
+ifndef NO_SYSTEM_SERVICEMODEL_ACTIVATION_DEPENDENCY
+activation = $(the_libdir_base)System.ServiceModel.Activation.dll
+servicemodel_deps = $(activation)
+
+ifneq (plainservice/,$(intermediate))
+LIB_MCS_FLAGS += -define:HAS_ACTIVATION -r:System.ServiceModel.Activation.dll
+endif 
+endif # NO_SYSTEM_SERVICEMODEL_ACTIVATION_DEPENDENCY
+
+ifndef NO_SYSTEM_WEB_APPSERVICES_DEPENDENCY
+LIB_REFS += System.Web.ApplicationServices
 endif
+
+endif # (4, $(FRAMEWORK_VERSION_MAJOR))
+
+endif # (2.1, $(FRAMEWORK_VERSION))
 
 TEST_MCS_FLAGS = $(LIB_MCS_FLAGS)
 
@@ -64,6 +71,23 @@ NO_SIGN_ASSEMBLY = yes
 NO_TEST = yes
 endif
 
-
-
 include ../../build/library.make
+
+$(the_libdir_base)System.ServiceModel.dll: $(servicemodel_deps)
+
+$(activation):
+	(cd ../System.ServiceModel.Activation; $(MAKE) $@)
+
+ifneq (plainservice/,$(intermediate))
+$(the_libdir_base)plainservice/System.ServiceModel.dll:
+	$(MAKE) intermediate=plainservice/ $(the_libdir_base)plainservice/System.ServiceModel.dll
+endif
+
+.NOTPARALLEL: $(servicemodel_deps)
+
+CLEAN_FILES = $(the_libdir_base)plainservice/System.ServiceModel.dll
+
+ifndef intermediate
+csproj-local:
+	$(MAKE) csproj-local intermediate=plainservice/
+endif

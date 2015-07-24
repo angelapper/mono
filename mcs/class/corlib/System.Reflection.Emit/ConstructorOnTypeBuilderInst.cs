@@ -74,6 +74,12 @@ namespace System.Reflection.Emit
 			}
 		}
 
+		public override Module Module {
+			get {
+				return cb.Module;
+			}
+		}
+
 		public override bool IsDefined (Type attributeType, bool inherit)
 		{
 			return cb.IsDefined (attributeType, inherit);
@@ -115,14 +121,14 @@ namespace System.Reflection.Emit
 				res = new ParameterInfo [cbuilder.parameters.Length];
 				for (int i = 0; i < cbuilder.parameters.Length; i++) {
 					Type type = instantiation.InflateType (cbuilder.parameters [i]);
-					res [i] = new ParameterInfo (cbuilder.pinfo == null ? null : cbuilder.pinfo [i], type, this, i + 1);
+					res [i] = ParameterInfo.New (cbuilder.pinfo == null ? null : cbuilder.pinfo [i], type, this, i + 1);
 				}
 			} else {
 				ParameterInfo[] parms = cb.GetParameters ();
 				res = new ParameterInfo [parms.Length];
 				for (int i = 0; i < parms.Length; i++) {
 					Type type = instantiation.InflateType (parms [i].ParameterType);
-					res [i] = new ParameterInfo (parms [i], type, this, i + 1);
+					res [i] = ParameterInfo.New (parms [i], type, this, i + 1);
 				}
 			}
 			return res;

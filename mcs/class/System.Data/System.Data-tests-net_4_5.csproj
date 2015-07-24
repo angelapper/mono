@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{E763AC5D-E03A-4D54-8B0A-5F904B56FA69}</ProjectGuid>
+    <ProjectGuid>{F7AED8DB-C8C6-4F47-AC6C-F93B26F90899}</ProjectGuid>
     <OutputType>Library</OutputType>
     <NoWarn>1699,649,618,169,612,219,168</NoWarn>
     <OutputPath>bin\Debug\System.Data-tests-net_4_5</OutputPath>
@@ -55,6 +55,8 @@
     <Compile Include="Test\System.Data.Common\DbDataAdapterTest.cs" />
     <Compile Include="Test\System.Data.Common\DBDataPermissionAttributeTest.cs" />
     <Compile Include="Test\System.Data.Common\DBDataPermissionTest.cs" />
+    <Compile Include="Test\System.Data.Common\DbDataReaderMock.cs" />
+    <Compile Include="Test\System.Data.Common\DbDataReaderTest.cs" />
     <Compile Include="Test\System.Data.Common\DbProviderFactoriesConfigurationHandlerTest.cs" />
     <Compile Include="Test\System.Data.Common\DbTransactionTest.cs" />
     <Compile Include="Test\System.Data.Odbc\OdbcCommandBuilderTest.cs" />
@@ -169,7 +171,8 @@
     <Compile Include="Test\System.Data\XmlExportOfTypedDataSetTest.cs" />
     <Compile Include="Test\System.Xml\XmlDataDocumentTest.cs" />
     <Compile Include="Test\System.Xml\XmlDataDocumentTest2.cs" />
-    <Compile Include="Mono.Data.SqlExpressions\Parser.cs" />  </ItemGroup>
+    <Compile Include="Mono.Data.SqlExpressions\Parser.cs" />
+  </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
@@ -181,50 +184,53 @@
     <PreBuildEvent>
 
     </PreBuildEvent>
-    <PostBuildEvent>
-      xcopy $(TargetName).* $(ProjectDir)..\lib\net_4_5\ /Y /R /D
-  </PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">
+
+    </PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">
+
+    </PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="..\lib\net_4_5\nunit.framework.dll" />
     <ProjectReference Include="..\corlib\corlib-net_4_5.csproj">
-      <Project>{05A7A0C2-6946-4CF5-9ED3-44AB0B428C4E}</Project>
+      <Project>{33BF0182-AC5C-464C-995B-C9CFE74E1A95}</Project>
       <Name>corlib\corlib-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\System.Data\System.Data-net_4_5.csproj">
-      <Project>{5CAB0F19-4A6F-4B4B-96DA-5677F88E2EF6}</Project>
+      <Project>{9A33954F-57A8-4D75-B1D8-0F81808A0DD4}</Project>
       <Name>System.Data\System.Data-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\System\System-net_4_5-2.csproj">
-      <Project>{34966210-D64D-419C-94A4-9A6093CE5882}</Project>
+      <Project>{5C605B73-19DA-4FB7-AB39-C7EF9A8B19FE}</Project>
       <Name>System\System-net_4_5-2</Name>
     </ProjectReference>
     <ProjectReference Include="..\System.XML\System.Xml-net_4_5-1.csproj">
-      <Project>{6374B2FC-93C6-4FD0-8CF0-8EB12F5AC71D}</Project>
+      <Project>{2534ADE0-05E4-490F-933D-1E39310A0CB9}</Project>
       <Name>System.XML\System.Xml-net_4_5-1</Name>
     </ProjectReference>
     <ProjectReference Include="..\System.EnterpriseServices\System.EnterpriseServices-net_4_5.csproj">
-      <Project>{2B2808F7-930A-4416-A060-57D9F8DC879C}</Project>
+      <Project>{773D8BA7-9A88-49AC-81C9-740436270588}</Project>
       <Name>System.EnterpriseServices\System.EnterpriseServices-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\Mono.Data.Tds\Mono.Data.Tds-net_4_5.csproj">
-      <Project>{2BB65926-A803-484F-A2D2-05CED0254A28}</Project>
+      <Project>{CB7949AC-5FA7-4FAB-893A-8FAF436BF514}</Project>
       <Name>Mono.Data.Tds\Mono.Data.Tds-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\System.Configuration\System.Configuration-net_4_5.csproj">
-      <Project>{847BF7E9-DEFB-43C9-8410-CA775ADC0E8A}</Project>
+      <Project>{D52A2CEA-245E-4877-950E-3EAC5F541B8E}</Project>
       <Name>System.Configuration\System.Configuration-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\System.Transactions\System.Transactions-net_4_5.csproj">
-      <Project>{BED431C4-56B5-4990-A8E6-DCD02A331BC9}</Project>
+      <Project>{AF2BBF50-AB57-4CA1-8EF5-2B54C7418434}</Project>
       <Name>System.Transactions\System.Transactions-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\System.Core\System.Core-net_4_5.csproj">
-      <Project>{E77D8877-AEAD-4FDF-8A44-36AAA0B20653}</Project>
+      <Project>{D92530F4-3F2B-4351-BD21-9D6BEE6D2A4E}</Project>
       <Name>System.Core\System.Core-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\Mono.Data.Sqlite\Mono.Data.Sqlite-net_4_0.csproj">
-      <Project>{BB9B46F0-18EB-4FCF-9C63-461E5FAF205B}</Project>
+      <Project>{74084B98-6858-4133-998C-E594D367D8F1}</Project>
       <Name>Mono.Data.Sqlite\Mono.Data.Sqlite-net_4_0</Name>
     </ProjectReference>
   </ItemGroup>

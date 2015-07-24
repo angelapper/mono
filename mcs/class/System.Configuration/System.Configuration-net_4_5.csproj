@@ -5,10 +5,10 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{847BF7E9-DEFB-43C9-8410-CA775ADC0E8A}</ProjectGuid>
+    <ProjectGuid>{D52A2CEA-245E-4877-950E-3EAC5F541B8E}</ProjectGuid>
     <OutputType>Library</OutputType>
     <NoWarn>1699,618</NoWarn>
-    <OutputPath>bin\Debug\System.Configuration-net_4_5</OutputPath>
+    <OutputPath>./../../class/lib/net_4_5</OutputPath>
     <NoStdLib>True</NoStdLib>
     <NoConfig>True</NoConfig>
     
@@ -19,12 +19,13 @@
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
+  
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <NoWarn>1699,618</NoWarn>
     <Optimize>false</Optimize>
-    <DefineConstants>DEBUG;TRACE;NET_1_1;NET_2_0;NET_3_0;NET_3_5;NET_4_0;NET_4_5</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;NET_4_0;NET_4_5;MONO;DISABLE_CAS_USE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -32,7 +33,7 @@
     <DebugType>pdbonly</DebugType>
     <NoWarn>1699,618</NoWarn>
     <Optimize>true</Optimize>
-    <DefineConstants>NET_1_1;NET_2_0;NET_3_0;NET_3_5;NET_4_0;NET_4_5</DefineConstants>
+    <DefineConstants>NET_4_0;NET_4_5;MONO;DISABLE_CAS_USE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -173,32 +174,40 @@
   </Target>
   -->
   <PropertyGroup>
-    <PreBuildEvent>
+    <PreBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">
 
     </PreBuildEvent>
-    <PostBuildEvent>
-      xcopy $(TargetName).* $(ProjectDir)..\lib\net_4_5\ /Y /R /D
-  </PostBuildEvent>
+    <PreBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">
+
+    </PreBuildEvent>
+
+    <PostBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">
+
+    </PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">
+
+    </PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\corlib\corlib-net_4_5.csproj">
-      <Project>{05A7A0C2-6946-4CF5-9ED3-44AB0B428C4E}</Project>
-      <Name>corlib\corlib-net_4_5</Name>
+    <ProjectReference Include="../corlib/corlib-net_4_5.csproj">
+      <Project>{33BF0182-AC5C-464C-995B-C9CFE74E1A95}</Project>
+      <Name>corlib-net_4_5</Name>
     </ProjectReference>
-    <ProjectReference Include="..\System\System-net_4_5-1.csproj">
-      <Project>{B53B8417-E392-4660-86F0-54E7B7FAD4BA}</Project>
-      <Name>System\System-net_4_5-1</Name>
+    <ProjectReference Include="../System/System-secxml-net_4_5.csproj">
+      <Project>{46F151F2-A422-4A1B-9D29-2E148CE73629}</Project>
+      <Name>System-secxml-net_4_5</Name>
     </ProjectReference>
-    <ProjectReference Include="..\System.XML\System.Xml-net_4_5.csproj">
-      <Project>{9E7D0EEC-475C-4829-8A0D-74FBB76D25E6}</Project>
-      <Name>System.XML\System.Xml-net_4_5</Name>
+    <ProjectReference Include="../System.XML/System.Xml-bare-net_4_5.csproj">
+      <Project>{21FB091E-0F84-479E-AB16-6503D36852F9}</Project>
+      <Name>System.Xml-bare-net_4_5</Name>
     </ProjectReference>
-    <ProjectReference Include="..\System.Security\System.Security-net_4_5.csproj">
-      <Project>{70AD32F9-8D9F-4EFB-A6DB-254203565D0A}</Project>
-      <Name>System.Security\System.Security-net_4_5</Name>
+    <ProjectReference Include="../System.Security/System.Security-net_4_5.csproj">
+      <Project>{B55E59B2-31CA-438B-ADB8-4B9A9A547830}</Project>
+      <Name>System.Security-net_4_5</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
   </ItemGroup>
 </Project>
+
